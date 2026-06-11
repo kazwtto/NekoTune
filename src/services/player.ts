@@ -1,15 +1,26 @@
 import { Howl } from "howler"
 import type { Song } from "../types/music"
-
-type PlayerEvent = string
-type PlayerListener = (event: PlayerEvent, data?: unknown) => void
+import { proxyUrl } from "./proxy"
+import { usePlayerStore } from "../stores/playerStore"
+import { useSettingsStore } from "../stores/settingsStore"
 
 class PlayerService {
   private howl: Howl | null = null
   private _currentSong: Song | null = null
-  private listeners: Map<string, PlayerListener[]> = new Map()
   private progressInterval: ReturnType<typeof setInterval> | null = null
   private _volume: number = 0.8
+
+  private get store() {
+    return usePlayerStore.getState()
+  }
+
+  private get settings() {
+    return useSettingsStore.getState().settings
+  }
+
+  private patch(state: Partial<ReturnType<typeof usePlayerStore.getState>>) {
+    usePlayerStore.setState(state)
+  }
 
   get currentSong(): Song | null {
     return this._currentSong
@@ -21,86 +32,103 @@ class PlayerService {
 
   set volume(val: number) {
     this._volume = Math.max(0, Math.min(1, val))
-    if (this.howl) {
-      this.howl.volume(this._volume)
-    }
+    if (this.howl) this.howl.volume(this._volume)
   }
 
-  on(event: PlayerEvent, listener: PlayerListener): () => void {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, [])
-    }
-    this.listeners.get(event)!.push(listener)
-    return () => {
-      const arr = this.listeners.get(event)
-      if (arr) {
-        const idx = arr.indexOf(listener)
-        if (idx >= 0) arr.splice(idx, 1)
-      }
-    }
-  }
-
-  private emit(event: PlayerEvent, data?: unknown) {
-    const listeners = this.listeners.get(event)
-    if (listeners) {
-      listeners.forEach((l) => l(event, data))
-    }
-  }
-
-  async loadAndPlay(song: Song): Promise<void> {
+  async loadAndPlay(song: Song, autoPlay = true): Promise<void> {
     this._currentSong = song
+    this.patch({ isLoading: true, currentSong: song, progress: 0, duration: song.duration || 0 })
+
     if (song.isLocal && song.filePath) {
-      await this.playLocal(song)
+      await this.playLocal(song, autoPlay)
     } else {
-      await this.playYoutube(song)
+      await this.playYoutube(song, autoPlay)
     }
   }
 
-  private async playYoutube(song: Song): Promise<void> {
+  private async playYoutube(song: Song, autoPlay: boolean): Promise<void> {
     if (!song.videoId) return
     this.stop()
 
     const { getStreamUrl: fetchStream } = await import("./innertube")
-    const url = await fetchStream(song.videoId)
-    if (!url) {
-      this.emit("error", "Failed to get stream URL")
+    const streamData = await fetchStream(song.videoId)
+    if (!streamData) {
+      this.patch({ isLoading: false, isPlaying: false })
+      if (this.settings.autoSkipOnError) {
+        this.store.next()
+      }
       return
     }
 
+    const audioSrc = proxyUrl(streamData.url)
+    if (!audioSrc) {
+      this.patch({ isLoading: false, isPlaying: false })
+      return
+    }
+
+    this._currentSong = song
+
+    const durationFromYtdlp = streamData.duration
+
     this.howl = new Howl({
-      src: [url],
-      format: ["mp3", "aac", "webm"],
+      src: [audioSrc],
+      format: ["mp3", "aac", "webm", "m4a"],
       volume: this._volume,
       html5: true,
       onload: () => {
-        this.emit("load")
-        this.howl?.play()
-        this.emit("play")
-        this.startProgressInterval()
+        const howlDuration = this.howl?.duration() ?? 0
+        const dur = howlDuration > 0 ? howlDuration : durationFromYtdlp
+        this.patch({ isLoading: false, duration: dur > 0 ? dur : this.store.duration })
+        if (autoPlay) {
+          this.howl?.play()
+        }
       },
       onplay: () => {
-        this.emit("play")
+        this.patch({ isPlaying: true, isLoading: false })
         this.startProgressInterval()
       },
       onpause: () => {
-        this.emit("pause")
+        this.patch({ isPlaying: false })
         this.stopProgressInterval()
       },
       onstop: () => {
-        this.emit("stop")
+        this.patch({ isPlaying: false })
         this.stopProgressInterval()
       },
       onend: () => {
-        this.emit("end")
+        this.patch({ isPlaying: false })
         this.stopProgressInterval()
+        const state = this.store
+        if (state.repeat === "one") {
+          this.howl?.seek(0)
+          this.howl?.play()
+        } else {
+          state.next()
+          const nextSong = usePlayerStore.getState().currentSong
+          if (nextSong && nextSong.videoId !== this._currentSong?.videoId) {
+            this.loadAndPlay(nextSong)
+          }
+        }
       },
-      onloaderror: () => {
-        this.emit("error", "Failed to load audio")
+      onloaderror: (_id, err) => {
+        console.error("Howler load error:", err)
+        this.patch({ isLoading: false, isPlaying: false })
+        if (this.settings.autoSkipOnError) {
+          this.store.next()
+          const nextSong = usePlayerStore.getState().currentSong
+          if (nextSong && nextSong.videoId !== this._currentSong?.videoId) {
+            this.loadAndPlay(nextSong)
+          }
+        }
+      },
+      onplayerror: (_id, err) => {
+        console.error("Howler play error:", err)
+        this.patch({ isPlaying: false, isLoading: false })
       },
     })
   }
 
-  private async playLocal(song: Song): Promise<void> {
+  private async playLocal(song: Song, autoPlay: boolean): Promise<void> {
     if (!song.filePath) return
     this.stop()
 
@@ -109,29 +137,44 @@ class PlayerService {
       volume: this._volume,
       html5: true,
       onload: () => {
-        this.emit("load")
-        this.howl?.play()
-        this.emit("play")
-        this.startProgressInterval()
+        const dur = this.howl?.duration() ?? 0
+        this.patch({ isLoading: false, duration: dur > 0 ? dur : this.store.duration })
+        if (autoPlay) {
+          this.howl?.play()
+        }
       },
       onplay: () => {
-        this.emit("play")
+        this.patch({ isPlaying: true, isLoading: false })
         this.startProgressInterval()
       },
       onpause: () => {
-        this.emit("pause")
+        this.patch({ isPlaying: false })
         this.stopProgressInterval()
       },
       onstop: () => {
-        this.emit("stop")
+        this.patch({ isPlaying: false })
         this.stopProgressInterval()
       },
       onend: () => {
-        this.emit("end")
+        this.patch({ isPlaying: false })
         this.stopProgressInterval()
+        const state = this.store
+        if (state.repeat === "one") {
+          this.howl?.seek(0)
+          this.howl?.play()
+        } else {
+          state.next()
+          const nextSong = usePlayerStore.getState().currentSong
+          if (nextSong && nextSong.videoId !== this._currentSong?.videoId) {
+            this.loadAndPlay(nextSong)
+          }
+        }
       },
       onloaderror: () => {
-        this.emit("error", "Failed to load local file")
+        this.patch({ isLoading: false, isPlaying: false })
+        if (this.settings.autoSkipOnError) {
+          this.store.next()
+        }
       },
     })
   }
@@ -139,16 +182,12 @@ class PlayerService {
   play(): void {
     if (this.howl && !this.howl.playing()) {
       this.howl.play()
-      this.emit("play")
-      this.startProgressInterval()
     }
   }
 
   pause(): void {
     if (this.howl?.playing()) {
       this.howl.pause()
-      this.emit("pause")
-      this.stopProgressInterval()
     }
   }
 
@@ -168,7 +207,6 @@ class PlayerService {
       this.howl = null
     }
     this._currentSong = null
-    this.emit("stop")
   }
 
   seek(time: number): void {
@@ -178,11 +216,15 @@ class PlayerService {
   }
 
   getCurrentTime(): number {
-    return this.howl ? (this.howl.seek() as number) : 0
+    if (!this.howl) return 0
+    const t = this.howl.seek()
+    return typeof t === "number" ? t : 0
   }
 
   getDuration(): number {
-    return this.howl ? this.howl.duration() : 0
+    if (!this.howl) return 0
+    const d = this.howl.duration()
+    return d > 0 ? d : 0
   }
 
   isPlaying(): boolean {
@@ -192,12 +234,12 @@ class PlayerService {
   private startProgressInterval(): void {
     this.stopProgressInterval()
     this.progressInterval = setInterval(() => {
-      if (this.howl?.playing()) {
-        this.emit("timeupdate", {
-          current: this.howl.seek(),
-          duration: this.howl.duration(),
-        })
-      }
+      if (!this.howl) return
+      const seekVal = this.howl.seek()
+      const dur = this.howl.duration()
+      const current = typeof seekVal === "number" ? seekVal : 0
+      const duration = dur > 0 ? dur : this.store.duration
+      usePlayerStore.setState({ progress: current, duration })
     }, 250)
   }
 
@@ -210,7 +252,6 @@ class PlayerService {
 
   destroy(): void {
     this.stop()
-    this.listeners.clear()
   }
 }
 

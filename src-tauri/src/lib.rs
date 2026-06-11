@@ -1,4 +1,6 @@
 mod api;
+mod proxy;
+mod ytdlp;
 
 use api::innertube::*;
 
@@ -33,8 +35,19 @@ async fn cmd_get_artist(browse_id: String) -> Result<ArtistData, String> {
 }
 
 #[tauri::command]
-async fn cmd_get_stream_url(video_id: String) -> Result<String, String> {
-    get_stream_url(&video_id).await
+async fn cmd_get_stream_url(video_id: String) -> Result<StreamData, String> {
+    let data = ytdlp::get_stream_url(&video_id).await?;
+    let url_id = proxy::register_url(data.url);
+    Ok(StreamData {
+        url: url_id.to_string(),
+        duration: data.duration,
+    })
+}
+
+#[tauri::command]
+async fn cmd_register_stream_url(url: String) -> Result<String, String> {
+    let url_id = proxy::register_url(url);
+    Ok(url_id.to_string())
 }
 
 #[tauri::command]
@@ -64,6 +77,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .register_asynchronous_uri_scheme_protocol("nekotune", proxy::handle_protocol_request)
         .invoke_handler(tauri::generate_handler![
             cmd_get_home_feed,
             cmd_search_music,
@@ -72,6 +86,7 @@ pub fn run() {
             cmd_get_album,
             cmd_get_artist,
             cmd_get_stream_url,
+            cmd_register_stream_url,
             cmd_get_lyrics,
             cmd_debug_dump,
         ])

@@ -7,6 +7,8 @@ import SongCard from "../components/media/SongCard"
 import Shimmer from "../components/ui/Shimmer"
 import Button from "../components/ui/Button"
 import { Play, ArrowLeft, Music } from "lucide-react"
+import { proxyUrl } from "../services/proxy"
+import { useScrollPersistence } from "../hooks/useScrollPersistence"
 
 export default function AlbumPage() {
   const { id } = useParams()
@@ -14,6 +16,7 @@ export default function AlbumPage() {
   const navigate = useNavigate()
   const { data: album, isLoading, error } = useAlbum(id || "")
   const { play } = usePlayer()
+  const scrollRef = useScrollPersistence(`album-${id}`)
 
   if (isLoading) {
     return (
@@ -29,7 +32,7 @@ export default function AlbumPage() {
   if (error || !album) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <p className="text-sm" style={{ color: "var(--error)" }}>Failed to load album</p>
+        <p className="text-sm text-error">{t("common.failedToLoad")}</p>
       </motion.div>
     )
   }
@@ -42,39 +45,37 @@ export default function AlbumPage() {
 
   return (
     <motion.div
+      ref={scrollRef}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
+      className="overflow-y-auto h-full"
     >
       <button
         onClick={() => navigate(-1)}
-        className="mb-4 flex cursor-pointer items-center gap-1.5 text-sm transition-colors duration-150 hover:opacity-80"
-        style={{ background: "none", border: "none", color: "var(--text-muted)" }}
+        className="mb-4 flex cursor-pointer items-center gap-1.5 text-sm text-muted transition-colors duration-150 hover:opacity-80"
       >
-        <ArrowLeft size={16} /> Back
+        <ArrowLeft size={16} /> {t("common.back")}
       </button>
 
       <div className="mb-5 flex items-center gap-5">
-        <div
-          className="h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl"
-          style={{ background: "var(--bg-surface)" }}
-        >
+        <div className="h-32 w-32 flex-shrink-0 overflow-hidden rounded-xl bg-surface">
           {album!.coverUrl ? (
-            <img src={album!.coverUrl} alt={album!.title} className="h-full w-full object-cover" />
+            <img src={proxyUrl(album!.coverUrl)} alt={album!.title} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <Music size={28} style={{ color: "var(--text-muted)" }} />
+              <Music size={28} className="text-muted" />
             </div>
           )}
         </div>
         <div>
-          <h2 className="text-lg font-bold">{album!.title}</h2>
-          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+          <h2 className="text-lg font-bold text-primary">{album!.title}</h2>
+          <p className="text-sm text-secondary">
             {album!.artist}
-            {album!.year && <span> • {album!.year}</span>}
+            {album!.year && <span> · {album!.year}</span>}
           </p>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-            {album!.songCount || album!.songs?.length || 0} {t("playlist.songs")}
+          <p className="mt-1 text-sm text-muted">
+            {t("common.songsCount", { count: album!.songCount || album!.songs?.length || 0 })}
           </p>
         </div>
       </div>

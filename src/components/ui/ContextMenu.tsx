@@ -33,15 +33,8 @@ export default function ContextMenu({ x, y, onClose, children }: ContextMenuProp
   return (
     <div
       ref={ref}
-      className="rounded-lg py-1.5 shadow-xl z-50"
-      style={{
-        position: "fixed",
-        left: adjustedX,
-        top: adjustedY,
-        minWidth: 160,
-        background: "var(--bg-elevated)",
-        border: "1px solid var(--border)",
-      }}
+      className="fixed z-50 min-w-40 rounded-lg border border-border bg-elevated py-1.5 shadow-xl"
+      style={{ left: adjustedX, top: adjustedY }}
       onClick={onClose}
     >
       {children}
@@ -61,14 +54,9 @@ export function ContextMenuItem({
   return (
     <button
       onClick={onClick}
-      className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs transition-colors duration-150"
-      style={{
-        background: "none",
-        border: "none",
-        color: danger ? "var(--error)" : "var(--text-secondary)",
-      }}
-      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
-      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs transition-colors duration-150 hover:bg-bg-hover ${
+        danger ? "text-error" : "text-secondary"
+      }`}
     >
       {children}
     </button>

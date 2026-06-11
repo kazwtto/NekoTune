@@ -10,49 +10,29 @@ export default function Button({
   variant = "primary",
   size = "md",
   children,
-  style,
+  className = "",
   ...props
 }: ButtonProps) {
-  const baseStyle: React.CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    border: "none",
-    borderRadius: 8,
-    cursor: "pointer",
-    fontWeight: 500,
-    transition: "all 0.15s ease",
-    opacity: props.disabled ? 0.5 : 1,
+  const base =
+    "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-all duration-150 cursor-pointer border-none"
+
+  const sizes: Record<string, string> = {
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-4 py-2 text-xs",
   }
 
-  const sizeStyle = size === "sm" ? { padding: "6px 12px", fontSize: 12 } : { padding: "8px 16px", fontSize: 13 }
-
-  const variantStyles: Record<string, React.CSSProperties> = {
-    primary: {
-      background: "var(--accent)",
-      color: "#fff",
-    },
-    secondary: {
-      background: "var(--bg-surface)",
-      color: "var(--text-secondary)",
-      border: "1px solid var(--border)",
-    },
-    ghost: {
-      background: "transparent",
-      color: "var(--text-secondary)",
-    },
-    icon: {
-      background: "transparent",
-      color: "var(--text-secondary)",
-      padding: 6,
-      borderRadius: 6,
-    },
+  const variants: Record<string, string> = {
+    primary: "bg-accent text-white",
+    secondary: "bg-surface text-secondary border border-border",
+    ghost: "bg-transparent text-secondary",
+    icon: "bg-transparent text-secondary p-1.5 rounded-md",
   }
+
+  const disabledStyle = props.disabled ? "opacity-50" : ""
 
   return (
     <button
-      style={{ ...baseStyle, ...sizeStyle, ...variantStyles[variant], ...style }}
+      className={`${base} ${sizes[size]} ${variants[variant]} ${disabledStyle} ${className}`}
       {...props}
     >
       {children}

@@ -199,9 +199,9 @@ export async function getArtist(browseId: string): Promise<Artist> {
   return mapArtist(artist)
 }
 
-export async function getStreamUrl(videoId: string): Promise<string | null> {
+export async function getStreamUrl(videoId: string): Promise<{ url: string; duration: number } | null> {
   try {
-    return await invoke<string>("cmd_get_stream_url", { videoId })
+    return await invoke<{ url: string; duration: number }>("cmd_get_stream_url", { videoId })
   } catch {
     return null
   }

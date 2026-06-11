@@ -40,21 +40,12 @@ export default function Slider({
     <div
       ref={trackRef}
       onClick={handleClick}
-      className={`cursor-pointer rounded-full ${className}`}
-      style={{
-        height,
-        background: "var(--bg-elevated)",
-        position: "relative",
-        ...style,
-      }}
+      className={`cursor-pointer rounded-full bg-elevated ${className}`}
+      style={{ height, position: "relative", ...style }}
     >
       <div
-        className="rounded-full transition-all duration-100"
-        style={{
-          height: "100%",
-          width: `${pct}%`,
-          background: "var(--accent)",
-        }}
+        className="h-full rounded-full bg-accent transition-all duration-100"
+        style={{ width: `${pct}%` }}
       />
       <input
         type="range"
@@ -63,8 +54,7 @@ export default function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="absolute inset-0 cursor-pointer opacity-0"
-        style={{ width: "100%", height: "100%" }}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
       />
     </div>
   )

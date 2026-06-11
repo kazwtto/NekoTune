@@ -1,11 +1,23 @@
 import { useSettingsStore } from "../../stores/settingsStore"
 import type { ThemeMode } from "../../types/settings"
 import { useTranslation } from "react-i18next"
+import SettingsCard from "./SettingsCard"
 
-const themes: { value: ThemeMode; labelKey: string; color: string }[] = [
-  { value: "dark", labelKey: "settings.dark", color: "#161b22" },
-  { value: "light", labelKey: "settings.light", color: "#f1f0f5" },
-  { value: "pure-black", labelKey: "settings.pureBlack", color: "#000000" },
+const themes: { value: ThemeMode; label: string; preview: string; ring: string }[] = [
+  { value: "dark", label: "Escuro", preview: "#161b22", ring: "rgba(255,255,255,0.1)" },
+  { value: "light", label: "Claro", preview: "#f1f0f5", ring: "rgba(0,0,0,0.1)" },
+  { value: "pure-black", label: "Preto Puro", preview: "#000000", ring: "rgba(255,255,255,0.15)" },
+]
+
+const accentColors = [
+  { value: "#7c6aef", label: "Roxo" },
+  { value: "#f97316", label: "Laranja" },
+  { value: "#c084fc", label: "Lilás" },
+  { value: "#22c55e", label: "Verde" },
+  { value: "#3b82f6", label: "Azul" },
+  { value: "#ec4899", label: "Rosa" },
+  { value: "#eab308", label: "Amarelo" },
+  { value: "#ef4444", label: "Vermelho" },
 ]
 
 export default function AppearanceSection() {
@@ -14,46 +26,78 @@ export default function AppearanceSection() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div>
-        <p className="mb-2.5 text-sm font-medium">{t("settings.theme")}</p>
-        <div className="flex gap-3">
-          {themes.map((th) => (
-            <button
-              key={th.value}
-              onClick={() => updateSettings({ theme: th.value })}
-              className="flex cursor-pointer flex-col items-center gap-2 rounded-lg p-3.5 transition-all duration-150"
-              style={{
-                background: settings.theme === th.value ? "var(--accent-muted)" : "var(--bg-surface)",
-                border: `1px solid ${settings.theme === th.value ? "var(--accent)" : "var(--border)"}`,
-              }}
-            >
-              <div
-                className="h-8 w-8 rounded-full"
-                style={{ background: th.color, border: "1px solid var(--border)" }}
-              />
-              <span className="text-xs">{t(th.labelKey)}</span>
-            </button>
-          ))}
+      <SettingsCard title={t("settings.theme")}>
+        <div className="grid grid-cols-3 gap-3">
+          {themes.map((th) => {
+            const isActive = settings.theme === th.value
+            return (
+              <button
+                key={th.value}
+                onClick={() => updateSettings({ theme: th.value })}
+                className={`group flex cursor-pointer flex-col items-center gap-2.5 rounded-xl p-4 transition-all duration-150 ${
+                  isActive
+                    ? "bg-accent-muted ring-2 ring-accent/40"
+                    : "bg-bg-elevated hover:ring-1 hover:ring-white/10"
+                }`}
+              >
+                <div className="relative">
+                  <div
+                    className="h-10 w-10 rounded-full shadow-inner"
+                    style={{ background: th.preview, border: `2px solid ${th.ring}` }}
+                  />
+                  {isActive && (
+                    <div className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <span className={`text-xs font-medium ${isActive ? "text-accent" : "text-secondary"}`}>
+                  {th.label}
+                </span>
+              </button>
+            )
+          })}
         </div>
-      </div>
+      </SettingsCard>
 
-      <div>
-        <p className="mb-2.5 text-sm font-medium">{t("settings.accentColor")}</p>
-        <div className="flex gap-2.5">
-          {["#7c6aef", "#f97316", "#c084fc", "#22c55e", "#3b82f6", "#ec4899"].map((color) => (
-            <button
-              key={color}
-              onClick={() => updateSettings({ accentColor: color })}
-              className="h-7 w-7 cursor-pointer rounded-full transition-all duration-150"
-              style={{
-                background: color,
-                transform: settings.accentColor === color ? "scale(1.15)" : "scale(1)",
-                border: settings.accentColor === color ? "2px solid #fff" : "2px solid transparent",
-              }}
-            />
-          ))}
+      <SettingsCard title={t("settings.accentColor")}>
+        <div className="flex flex-wrap gap-3">
+          {accentColors.map((c) => {
+            const isActive = settings.accentColor === c.value
+            return (
+              <button
+                key={c.value}
+                onClick={() => updateSettings({ accentColor: c.value })}
+                className="group flex cursor-pointer flex-col items-center gap-1.5"
+                title={c.label}
+              >
+                <div
+                  className={`relative h-9 w-9 rounded-full transition-all duration-150 ${
+                    isActive ? "scale-110 ring-2 ring-offset-2 ring-offset-bg-surface" : "hover:scale-105"
+                  }`}
+                  style={{
+                    background: c.value,
+                    ...(isActive ? { ringColor: c.value } : {}),
+                  }}
+                >
+                  {isActive && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <span className={`text-[10px] ${isActive ? "text-primary font-medium" : "text-muted"}`}>
+                  {c.label}
+                </span>
+              </button>
+            )
+          })}
         </div>
-      </div>
+      </SettingsCard>
     </div>
   )
 }

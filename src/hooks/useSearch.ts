@@ -6,12 +6,21 @@ import { getItem, setItem } from "../utils/storage"
 const HISTORY_KEY = "nekotune-search-history"
 const MAX_HISTORY = 10
 
-export function useSearch() {
-  const [query, setQuery] = useState("")
-  const [debouncedQuery, setDebouncedQuery] = useState("")
+function readHistory(): string[] {
+  return getItem<string[]>(HISTORY_KEY, [])
+}
+
+export function useSearch(persistedQuery?: [string, (v: string) => void]) {
+  const [externalQuery, setExternalQuery] = persistedQuery ?? ["", () => {}]
+  const [query, setQueryState] = useState(externalQuery)
+  const [debouncedQuery, setDebouncedQuery] = useState(externalQuery)
+  const [history, setHistory] = useState<string[]>(readHistory)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
-  const history = getItem<string[]>(HISTORY_KEY, [])
+  const setQuery = useCallback((q: string) => {
+    setQueryState(q)
+    setExternalQuery(q)
+  }, [setExternalQuery])
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -38,12 +47,15 @@ export function useSearch() {
   })
 
   const addToHistory = useCallback((q: string) => {
-    const current = getItem<string[]>(HISTORY_KEY, [])
-    const updated = [q, ...current.filter((h) => h !== q)].slice(0, MAX_HISTORY)
-    setItem(HISTORY_KEY, updated)
+    setHistory((prev) => {
+      const updated = [q, ...prev.filter((h) => h !== q)].slice(0, MAX_HISTORY)
+      setItem(HISTORY_KEY, updated)
+      return updated
+    })
   }, [])
 
   const clearHistory = useCallback(() => {
+    setHistory([])
     setItem(HISTORY_KEY, [])
   }, [])
 

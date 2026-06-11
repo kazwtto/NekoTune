@@ -21,11 +21,11 @@
         "resizable": true,
         "fullscreen": false,
         "decorations": false,
-        "additionalBrowserArgs": "--disable-features=ServiceWorker,TrackingProtection"
+        "additionalBrowserArgs": "--disable-features=msCompatibilityQuery"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' https://yt3.googleusercontent.com https://i.ytimg.com data:; media-src 'self' https://*.googlevideo.com; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'"
+      "csp": null
     }
   },
   "bundle": {

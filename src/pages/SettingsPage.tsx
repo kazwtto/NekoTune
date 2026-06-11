@@ -1,75 +1,74 @@
-import { useState } from "react"
 import { motion } from "framer-motion"
 import { useTranslation } from "react-i18next"
-import { useSettingsStore } from "../stores/settingsStore"
-import { APP_VERSION } from "../utils/constants"
+import { usePersistedState } from "../hooks/usePersistedState"
+import {
+  Palette, Headphones, Play, Globe, Info,
+} from "lucide-react"
+
 import AppearanceSection from "../components/settings/AppearanceSection"
 import AudioSection from "../components/settings/AudioSection"
 import PlaybackSection from "../components/settings/PlaybackSection"
 import LanguageSection from "../components/settings/LanguageSection"
-import AccountSection from "../components/settings/AccountSection"
-import { Cat, RotateCcw } from "lucide-react"
+import AboutSection from "../components/settings/AboutSection"
 
-const tabs = [
-  { id: "appearance", labelKey: "settings.appearance" },
-  { id: "audio", labelKey: "settings.audio" },
-  { id: "playback", labelKey: "settings.playback" },
-  { id: "language", labelKey: "settings.language" },
-  { id: "account", labelKey: "settings.account" },
+const sections = [
+  { id: "appearance", labelKey: "settings.appearance", icon: Palette },
+  { id: "audio", labelKey: "settings.audio", icon: Headphones },
+  { id: "playback", labelKey: "settings.playback", icon: Play },
+  { id: "language", labelKey: "settings.language", icon: Globe },
+  { id: "about", labelKey: "settings.about", icon: Info },
 ]
 
 export default function SettingsPage() {
   const { t } = useTranslation()
-  const { resetSettings } = useSettingsStore()
-  const [activeTab, setActiveTab] = useState("appearance")
+  const [active, setActive] = usePersistedState("nekotune-settings-tab", "appearance")
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
+      className="flex h-full gap-6"
     >
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold">{t("common.settings")}</h2>
-        <button
-          onClick={resetSettings}
-          className="flex cursor-pointer items-center gap-1.5 text-sm transition-colors duration-150 hover:opacity-80"
-          style={{ background: "none", border: "none", color: "var(--text-muted)" }}
+      <aside className="w-48 flex-shrink-0">
+        <h1 className="mb-6 text-lg font-bold text-primary">{t("common.settings")}</h1>
+
+        <nav className="flex flex-col gap-0.5">
+          {sections.map((s) => {
+            const Icon = s.icon
+            const isActive = active === s.id
+            return (
+              <button
+                key={s.id}
+                onClick={() => setActive(s.id)}
+                className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-all duration-150 ${
+                  isActive
+                    ? "bg-accent-muted font-medium text-accent"
+                    : "text-secondary hover:bg-bg-hover hover:text-primary"
+                }`}
+              >
+                <Icon size={16} />
+                {t(s.labelKey)}
+              </button>
+            )
+          })}
+        </nav>
+      </aside>
+
+      <div className="min-w-0 flex-1 overflow-y-auto pr-6">
+        <motion.div
+          key={active}
+          initial={{ opacity: 0, x: 8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.15 }}
+          className="min-h-full"
         >
-          <RotateCcw size={14} /> Reset
-        </button>
-      </div>
-
-      <div className="mb-4 flex gap-2 overflow-x-auto">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className="cursor-pointer whitespace-nowrap rounded-lg px-3.5 py-2 text-sm transition-all duration-150"
-            style={{
-              background: activeTab === tab.id ? "var(--accent-muted)" : "var(--bg-surface)",
-              color: activeTab === tab.id ? "var(--accent)" : "var(--text-secondary)",
-              border: `1px solid ${activeTab === tab.id ? "var(--accent)" : "var(--border)"}`,
-            }}
-          >
-            {t(tab.labelKey)}
-          </button>
-        ))}
-      </div>
-
-      <div className="rounded-xl p-5" style={{ background: "var(--bg-surface)", border: "1px solid var(--border)" }}>
-        {activeTab === "appearance" && <AppearanceSection />}
-        {activeTab === "audio" && <AudioSection />}
-        {activeTab === "playback" && <PlaybackSection />}
-        {activeTab === "language" && <LanguageSection />}
-        {activeTab === "account" && <AccountSection />}
-      </div>
-
-      <div className="mt-5 flex flex-col items-center gap-1">
-        <Cat size={18} style={{ color: "var(--accent)" }} />
-        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-          NekoTune v{APP_VERSION}
-        </p>
+          {active === "appearance" && <AppearanceSection />}
+          {active === "audio" && <AudioSection />}
+          {active === "playback" && <PlaybackSection />}
+          {active === "language" && <LanguageSection />}
+          {active === "about" && <AboutSection />}
+        </motion.div>
       </div>
     </motion.div>
   )

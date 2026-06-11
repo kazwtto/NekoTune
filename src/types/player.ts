@@ -8,6 +8,7 @@ export interface PlayerState {
   queueIndex: number
   queueHistory: Song[]
   isPlaying: boolean
+  isLoading: boolean
   volume: number
   progress: number
   duration: number
@@ -36,4 +37,5 @@ export interface PlayerActions {
   setProgress: (progress: number) => void
   setDuration: (duration: number) => void
   setIsPlaying: (isPlaying: boolean) => void
+  setIsLoading: (isLoading: boolean) => void
 }

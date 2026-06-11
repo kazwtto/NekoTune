@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next"
 import {
   Play,
   Pause,
@@ -7,59 +6,60 @@ import {
   Shuffle,
   Repeat,
   Heart,
-  Music,
   Maximize2,
+  Loader2,
 } from "lucide-react"
 import { usePlayer } from "../../hooks/usePlayer"
 import { useUiStore } from "../../stores/uiStore"
+import { useLibraryStore } from "../../stores/libraryStore"
 import { formatTime } from "../../utils/format"
 import VolumeSlider from "../player/VolumeSlider"
+import { proxyUrl, highResThumb } from "../../services/proxy"
 
 export default function PlayerBar() {
-  const { t } = useTranslation()
-  const { currentSong, isPlaying, progress, duration, pause, resume, next, previous, shuffle, repeat, toggleShuffle, toggleRepeat } = usePlayer()
+  const {
+    currentSong,
+    isPlaying,
+    isLoading,
+    progress,
+    duration,
+    pause,
+    resume,
+    next,
+    previous,
+    seek,
+    shuffle,
+    repeat,
+    toggleShuffle,
+    toggleRepeat,
+  } = usePlayer()
   const setNowPlayingVisible = useUiStore((s) => s.setNowPlayingVisible)
+  const { favorites, toggleFavorite } = useLibraryStore()
 
-  if (!currentSong) {
-    return (
-      <div
-        className="flex items-center justify-center gap-2"
-        style={{
-          height: 72,
-          background: "var(--player-bg)",
-          borderTop: "1px solid var(--border)",
-        }}
-      >
-        <Music size={16} style={{ color: "var(--text-muted)" }} />
-        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-          {t("player.noQueue")}
-        </span>
-      </div>
-    )
-  }
+  if (!currentSong) return null
 
+  const isFav = favorites.includes(currentSong.videoId)
   const pct = duration > 0 ? (progress / duration) * 100 : 0
 
   return (
-    <div
-      className="flex items-center gap-4 px-4"
-      style={{
-        height: 72,
-        background: "var(--player-bg)",
-        borderTop: "1px solid var(--border)",
-      }}
-    >
-      <div className="flex items-center gap-3" style={{ width: 200, minWidth: 160 }}>
+    <div className="flex h-[72px] items-center gap-4 border-t border-border bg-player px-4">
+      <div className="flex w-48 min-w-40 items-center gap-3">
         <div
-          className="h-11 w-11 flex-shrink-0 overflow-hidden rounded-lg cursor-pointer transition-transform duration-150 hover:scale-105"
+          className="relative h-11 w-11 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg bg-elevated transition-transform duration-150 hover:scale-105"
           onClick={() => setNowPlayingVisible(true)}
-          style={{ background: "var(--bg-elevated)" }}
         >
-          {currentSong.albumArtUrl ? (
-            <img src={currentSong.albumArtUrl} alt={currentSong.title} className="h-full w-full object-cover" />
+          {currentSong.albumArtUrl || currentSong.videoId ? (
+            <img src={highResThumb(currentSong.videoId) || proxyUrl(currentSong.albumArtUrl)} alt={currentSong.title} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
-              <Music size={14} style={{ color: "var(--text-muted)" }} />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-muted">
+                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+              </svg>
+            </div>
+          )}
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+              <Loader2 size={16} className="animate-spin text-white" />
             </div>
           )}
         </div>
@@ -70,12 +70,15 @@ export default function PlayerBar() {
           >
             {currentSong.title}
           </p>
-          <p className="truncate text-xs" style={{ color: "var(--text-secondary)" }}>
+          <p className="truncate text-xs text-secondary">
             {currentSong.artist}
           </p>
         </div>
-        <button className="cursor-pointer transition-colors duration-150 hover:opacity-80" style={{ background: "none", border: "none", color: "var(--text-muted)", padding: 4 }}>
-          <Heart size={14} />
+        <button
+          onClick={() => toggleFavorite(currentSong.videoId)}
+          className={`cursor-pointer p-1 transition-colors duration-150 ${isFav ? "text-accent" : "text-muted hover:text-primary"}`}
+        >
+          <Heart size={14} fill={isFav ? "currentColor" : "none"} />
         </button>
       </div>
 
@@ -83,63 +86,68 @@ export default function PlayerBar() {
         <div className="flex items-center gap-4">
           <button
             onClick={toggleShuffle}
-            className="cursor-pointer transition-colors duration-150"
-            style={{ background: "none", border: "none", color: shuffle ? "var(--accent)" : "var(--text-muted)", padding: 4 }}
+            className={`cursor-pointer p-1 transition-colors duration-150 ${
+              shuffle ? "text-accent" : "text-muted"
+            }`}
           >
             <Shuffle size={14} />
           </button>
-          <button onClick={previous} className="cursor-pointer transition-colors duration-150 hover:opacity-80" style={{ background: "none", border: "none", color: "var(--text-secondary)", padding: 4 }}>
+          <button onClick={previous} className="cursor-pointer p-1 text-secondary transition-colors duration-150 hover:opacity-80">
             <SkipBack size={16} fill="currentColor" />
           </button>
           <button
             onClick={isPlaying ? pause : resume}
-            className="flex cursor-pointer items-center justify-center rounded-full transition-all duration-150 hover:scale-105"
-            style={{ width: 32, height: 32, background: "var(--accent)", border: "none", color: "#fff" }}
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-accent text-white transition-all duration-150 hover:scale-105"
           >
-            {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
+            {isLoading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : isPlaying ? (
+              <Pause size={14} fill="currentColor" />
+            ) : (
+              <Play size={14} fill="currentColor" />
+            )}
           </button>
-          <button onClick={next} className="cursor-pointer transition-colors duration-150 hover:opacity-80" style={{ background: "none", border: "none", color: "var(--text-secondary)", padding: 4 }}>
+          <button onClick={next} className="cursor-pointer p-1 text-secondary transition-colors duration-150 hover:opacity-80">
             <SkipForward size={16} fill="currentColor" />
           </button>
           <button
             onClick={toggleRepeat}
-            className="cursor-pointer transition-colors duration-150"
-            style={{ background: "none", border: "none", color: repeat !== "off" ? "var(--accent)" : "var(--text-muted)", padding: 4 }}
+            className={`cursor-pointer p-1 transition-colors duration-150 ${
+              repeat !== "off" ? "text-accent" : "text-muted"
+            }`}
           >
             <Repeat size={14} />
           </button>
         </div>
         <div className="flex w-full items-center gap-2">
-          <span className="text-xs tabular-nums" style={{ color: "var(--text-muted)", minWidth: 32, textAlign: "right" }}>
+          <span className="min-w-8 text-right text-xs tabular-nums text-muted">
             {formatTime(progress)}
           </span>
           <div
-            className="group relative flex-1 cursor-pointer rounded-full"
-            style={{ height: 4, background: "var(--bg-elevated)" }}
+            className="group relative h-1 flex-1 cursor-pointer rounded-full bg-elevated"
             onClick={(e) => {
               if (duration <= 0) return
               const rect = e.currentTarget.getBoundingClientRect()
               const x = (e.clientX - rect.left) / rect.width
-              usePlayer().seek(x * duration)
+              seek(x * duration)
             }}
           >
             <div
-              className="rounded-full transition-all duration-100"
-              style={{ height: "100%", width: `${pct}%`, background: "var(--accent)" }}
+              className="h-full rounded-full bg-accent transition-all duration-100"
+              style={{ width: `${pct}%` }}
             />
           </div>
-          <span className="text-xs tabular-nums" style={{ color: "var(--text-muted)", minWidth: 32 }}>
+          <span className="min-w-8 text-xs tabular-nums text-muted">
             {formatTime(duration)}
           </span>
         </div>
       </div>
 
-      <div className="flex items-center gap-3" style={{ width: 140, justifyContent: "flex-end" }}>
+      <div className="flex w-36 items-center justify-end gap-3">
         <VolumeSlider />
         <button
           onClick={() => setNowPlayingVisible(true)}
-          className="cursor-pointer transition-colors duration-150 hover:opacity-80"
-          style={{ background: "none", border: "none", color: "var(--text-muted)", padding: 4 }}
+          className="cursor-pointer p-1 text-muted transition-colors duration-150 hover:opacity-80"
         >
           <Maximize2 size={14} />
         </button>

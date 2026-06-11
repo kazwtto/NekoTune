@@ -8,12 +8,11 @@ export default function ProgressBar() {
 
   return (
     <div className="flex w-full items-center gap-3">
-      <span className="text-xs tabular-nums" style={{ color: "var(--text-muted)", minWidth: 36, textAlign: "right" }}>
+      <span className="min-w-9 text-right text-xs tabular-nums text-muted">
         {formatTime(progress)}
       </span>
       <div
-        className="group relative flex-1 cursor-pointer rounded-full"
-        style={{ height: 4, background: "var(--bg-elevated)" }}
+        className="group relative h-1 flex-1 cursor-pointer rounded-full bg-elevated"
         onClick={(e) => {
           if (duration <= 0) return
           const rect = e.currentTarget.getBoundingClientRect()
@@ -22,15 +21,11 @@ export default function ProgressBar() {
         }}
       >
         <div
-          className="rounded-full transition-all duration-100"
-          style={{
-            height: "100%",
-            width: `${pct}%`,
-            background: "var(--accent)",
-          }}
+          className="h-full rounded-full bg-accent transition-all duration-100"
+          style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-xs tabular-nums" style={{ color: "var(--text-muted)", minWidth: 36 }}>
+      <span className="min-w-9 text-xs tabular-nums text-muted">
         {formatTime(duration)}
       </span>
     </div>

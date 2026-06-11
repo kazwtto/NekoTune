@@ -25,14 +25,12 @@ export default function VolumeSlider() {
     <div className="flex items-center gap-2">
       <button
         onClick={toggleMute}
-        className="cursor-pointer transition-colors duration-150"
-        style={{ background: "none", border: "none", color: "var(--text-muted)", padding: 4 }}
+        className="cursor-pointer p-1 text-muted transition-colors duration-150"
       >
         {volume > 0 ? <Volume2 size={14} /> : <VolumeX size={14} />}
       </button>
       <div
-        className="relative cursor-pointer rounded-full"
-        style={{ width: 70, height: 4, background: "var(--bg-elevated)" }}
+        className="relative h-1 w-[70px] cursor-pointer rounded-full bg-elevated"
         onClick={(e) => {
           const rect = e.currentTarget.getBoundingClientRect()
           const x = (e.clientX - rect.left) / rect.width
@@ -40,12 +38,8 @@ export default function VolumeSlider() {
         }}
       >
         <div
-          className="rounded-full transition-all duration-100"
-          style={{
-            height: "100%",
-            width: `${volume * 100}%`,
-            background: "var(--accent)",
-          }}
+          className="h-full rounded-full bg-accent transition-all duration-100"
+          style={{ width: `${volume * 100}%` }}
         />
       </div>
     </div>

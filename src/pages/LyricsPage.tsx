@@ -15,20 +15,19 @@ export default function LyricsPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="flex h-full flex-col"
+      className="flex h-full flex-col overflow-y-auto"
     >
       <div className="mb-4 flex items-center justify-between">
         <button
           onClick={() => navigate(-1)}
-          className="flex cursor-pointer items-center gap-1.5 text-sm transition-colors duration-150 hover:opacity-80"
-          style={{ background: "none", border: "none", color: "var(--text-muted)" }}
+          className="flex cursor-pointer items-center gap-1.5 text-sm text-muted transition-colors duration-150 hover:opacity-80"
         >
-          <ArrowLeft size={16} /> Back
+          <ArrowLeft size={16} /> {t("common.back")}
         </button>
         {currentSong && (
           <div className="text-right">
-            <p className="text-sm font-medium">{currentSong.title}</p>
-            <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+            <p className="text-sm font-medium text-primary">{currentSong.title}</p>
+            <p className="text-xs text-muted">
               {currentSong.artist}
             </p>
           </div>
@@ -40,7 +39,7 @@ export default function LyricsPage() {
       </div>
 
       <div className="pb-2 text-center">
-        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+        <p className="text-xs text-muted">
           {t("common.loading")}
         </p>
       </div>

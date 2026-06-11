@@ -1,8 +1,23 @@
 import { create } from "zustand"
 import type { Song } from "../types/music"
 import type { PlayerState, PlayerActions, RepeatMode } from "../types/player"
+import { savePlayerState } from "../utils/playerPersist"
 
 type PlayerStore = PlayerState & PlayerActions
+
+function persist(get: () => PlayerStore) {
+  const s = get()
+  savePlayerState({
+    currentSong: s.currentSong,
+    queue: s.queue,
+    queueIndex: s.queueIndex,
+    volume: s.volume,
+    shuffle: s.shuffle,
+    repeat: s.repeat,
+    progress: s.progress,
+    duration: s.duration,
+  })
+}
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
   currentSong: null,
@@ -10,6 +25,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   queueIndex: -1,
   queueHistory: [],
   isPlaying: false,
+  isLoading: false,
   volume: 0.8,
   progress: 0,
   duration: 0,
@@ -24,20 +40,29 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const state = get()
     const existingIndex = state.queue.findIndex((s) => s.videoId === song.videoId)
     if (existingIndex >= 0) {
-      set({ currentSong: song, queueIndex: existingIndex, isPlaying: true, progress: 0 })
+      set({ currentSong: song, queueIndex: existingIndex, isPlaying: true, isLoading: true, progress: 0, duration: song.duration || 0 })
     } else {
       set({
         currentSong: song,
         queue: [...state.queue, song],
         queueIndex: state.queue.length,
         isPlaying: true,
+        isLoading: true,
         progress: 0,
+        duration: song.duration || 0,
       })
     }
+    persist(get)
   },
 
-  pause: () => set({ isPlaying: false }),
-  resume: () => set({ isPlaying: true }),
+  pause: () => {
+    set({ isPlaying: false })
+    persist(get)
+  },
+  resume: () => {
+    set({ isPlaying: true })
+    persist(get)
+  },
 
   next: () => {
     const state = get()
@@ -59,13 +84,17 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
         }
       }
     }
+    const nextSong = state.queue[nextIndex]
     set({
       queueIndex: nextIndex,
-      currentSong: state.queue[nextIndex],
+      currentSong: nextSong,
       isPlaying: true,
+      isLoading: true,
       progress: 0,
+      duration: nextSong?.duration || 0,
       queueHistory: [...state.queueHistory, state.currentSong!].slice(-50),
     })
+    persist(get)
   },
 
   previous: () => {
@@ -82,15 +111,24 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
         queueIndex: Math.max(0, state.queueIndex - 1),
         currentSong: prevSong,
         isPlaying: true,
+        isLoading: true,
         progress: 0,
+        duration: prevSong?.duration || 0,
       })
+      persist(get)
     }
   },
 
   seek: (time: number) => set({ progress: time }),
-  setVolume: (vol: number) => set({ volume: Math.max(0, Math.min(1, vol)) }),
+  setVolume: (vol: number) => {
+    set({ volume: Math.max(0, Math.min(1, vol)) })
+    persist(get)
+  },
 
-  toggleShuffle: () => set((s) => ({ shuffle: !s.shuffle })),
+  toggleShuffle: () => {
+    set((s) => ({ shuffle: !s.shuffle }))
+    persist(get)
+  },
 
   toggleRepeat: () => {
     const order: RepeatMode[] = ["off", "all", "one"]
@@ -98,11 +136,13 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const currentIndex = order.indexOf(state.repeat)
     const nextMode = order[(currentIndex + 1) % order.length]
     set({ repeat: nextMode })
+    persist(get)
   },
 
   addToQueue: (song: Song) => {
     const state = get()
     set({ queue: [...state.queue, song] })
+    persist(get)
   },
 
   removeFromQueue: (index: number) => {
@@ -117,6 +157,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       currentSong: newQueue[newIndex] || null,
       isPlaying: newQueue.length > 0 ? state.isPlaying : false,
     })
+    persist(get)
   },
 
   reorderQueue: (from: number, to: number) => {
@@ -132,6 +173,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       else if (from > state.queueIndex && to <= state.queueIndex) newIndex++
     }
     set({ queue: newQueue, queueIndex: newIndex })
+    persist(get)
   },
 
   clearQueue: () =>
@@ -140,11 +182,14 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       queueIndex: -1,
       currentSong: null,
       isPlaying: false,
+      isLoading: false,
       progress: 0,
+      duration: 0,
       queueHistory: [],
     }),
 
   setProgress: (progress: number) => set({ progress }),
   setDuration: (duration: number) => set({ duration }),
   setIsPlaying: (isPlaying: boolean) => set({ isPlaying }),
+  setIsLoading: (isLoading: boolean) => set({ isLoading }),
 }))

@@ -7,7 +7,6 @@ import LibraryPage from "./pages/LibraryPage"
 import PlaylistPage from "./pages/PlaylistPage"
 import ArtistPage from "./pages/ArtistPage"
 import AlbumPage from "./pages/AlbumPage"
-import QueuePage from "./pages/QueuePage"
 import LyricsPage from "./pages/LyricsPage"
 import SettingsPage from "./pages/SettingsPage"
 
@@ -22,7 +21,6 @@ export default function App() {
           <Route path="/playlist/:id" element={<PlaylistPage />} />
           <Route path="/artist/:id" element={<ArtistPage />} />
           <Route path="/album/:id" element={<AlbumPage />} />
-          <Route path="/queue" element={<QueuePage />} />
           <Route path="/lyrics" element={<LyricsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>

@@ -1,6 +1,7 @@
 import { useQueue } from "../../hooks/useQueue"
 import { GripVertical, Trash2 } from "lucide-react"
 import { formatTime } from "../../utils/format"
+import { proxyUrl } from "../../services/proxy"
 
 export default function QueueList() {
   const { queue, queueIndex, remove } = useQueue()
@@ -12,38 +13,32 @@ export default function QueueList() {
       {queue.map((song, i) => (
         <div
           key={`${song.videoId}-${i}`}
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-all duration-150"
-          style={{
-            background: i === queueIndex ? "var(--accent-muted)" : "transparent",
-            color: i === queueIndex ? "var(--accent)" : "var(--text-primary)",
-          }}
+          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs transition-all duration-150 ${
+            i === queueIndex ? "bg-accent-muted text-accent" : "text-primary"
+          }`}
         >
-          <button
-            className="cursor-pointer"
-            style={{ background: "none", border: "none", color: "var(--text-muted)", padding: 2 }}
-          >
+          <button className="cursor-pointer p-0.5 text-muted">
             <GripVertical size={14} />
           </button>
           {song.albumArtUrl && (
             <img
-              src={song.albumArtUrl}
+              src={proxyUrl(song.albumArtUrl)}
               alt=""
               className="h-8 w-8 flex-shrink-0 rounded-lg object-cover"
             />
           )}
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm">{song.title}</p>
-            <p className="truncate" style={{ color: "var(--text-muted)" }}>
+            <p className="truncate text-muted">
               {song.artist}
             </p>
           </div>
-          <span className="flex-shrink-0 tabular-nums" style={{ color: "var(--text-muted)" }}>
+          <span className="flex-shrink-0 tabular-nums text-muted">
             {formatTime(song.duration)}
           </span>
           <button
             onClick={() => remove(i)}
-            className="cursor-pointer transition-colors duration-150 hover:opacity-80"
-            style={{ background: "none", border: "none", color: "var(--text-muted)", padding: 4 }}
+            className="cursor-pointer p-1 text-muted transition-colors duration-150 hover:opacity-80"
           >
             <Trash2 size={13} />
           </button>

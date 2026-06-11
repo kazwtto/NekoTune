@@ -18,8 +18,7 @@ export default function Modal({ open, onClose, title, children, width = 380 }: M
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: "rgba(0, 0, 0, 0.6)" }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
           onClick={onClose}
         >
           <motion.div
@@ -27,22 +26,16 @@ export default function Modal({ open, onClose, title, children, width = 380 }: M
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="rounded-xl"
-            style={{
-              width,
-              maxHeight: "80vh",
-              background: "var(--bg-elevated)",
-              border: "1px solid var(--border)",
-              overflow: "hidden",
-            }}
+            className="overflow-hidden rounded-xl border border-border bg-elevated"
+            style={{ width, maxHeight: "80vh" }}
           >
             {title && (
-              <div
-                className="flex items-center justify-between px-5 py-4"
-                style={{ borderBottom: "1px solid var(--border)" }}
-              >
-                <span className="text-sm font-semibold">{title}</span>
-                <button onClick={onClose} className="cursor-pointer rounded-md p-1 transition-colors duration-150 hover:bg-white/5" style={{ color: "var(--text-muted)", background: "none", border: "none" }}>
+              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+                <span className="text-sm font-semibold text-primary">{title}</span>
+                <button
+                  onClick={onClose}
+                  className="cursor-pointer rounded-md p-1 text-muted transition-colors duration-150 hover:bg-white/5"
+                >
                   <X size={16} />
                 </button>
               </div>

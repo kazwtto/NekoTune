@@ -1,17 +1,19 @@
+import { useTranslation } from "react-i18next"
 import { useLyrics } from "../../hooks/useLyrics"
 import { usePlayerStore } from "../../stores/playerStore"
 import { Music } from "lucide-react"
 
 export default function LyricsView() {
+  const { t } = useTranslation()
   const { lyrics, currentLineIndex, loading } = useLyrics()
   const currentSong = usePlayerStore((s) => s.currentSong)
 
   if (!currentSong) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2">
-        <Music size={32} style={{ color: "var(--text-muted)" }} />
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          No song playing
+        <Music size={32} className="text-muted" />
+        <p className="text-sm text-muted">
+          {t("player.noQueue")}
         </p>
       </div>
     )
@@ -20,8 +22,8 @@ export default function LyricsView() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          Loading lyrics...
+        <p className="text-sm text-muted">
+          {t("common.loading")}
         </p>
       </div>
     )
@@ -30,11 +32,11 @@ export default function LyricsView() {
   if (lyrics.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2">
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
-          No lyrics found for &ldquo;{currentSong.title}&rdquo;
+        <p className="text-sm text-muted">
+          {t("common.noResults")}
         </p>
-        <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-          by {currentSong.artist}
+        <p className="text-xs text-muted">
+          {currentSong.artist}
         </p>
       </div>
     )
@@ -54,10 +56,11 @@ export default function LyricsView() {
             }}
           >
             <p
-              className="text-lg font-medium transition-colors duration-300"
+              className={`text-lg font-medium transition-all duration-300 ${
+                isActive ? "text-accent" : "text-secondary"
+              }`}
               style={{
-                color: isActive ? "var(--accent)" : "var(--text-secondary)",
-                textShadow: isActive ? "0 0 24px var(--accent-glow)" : "none",
+                textShadow: isActive ? "0 0 24px var(--color-accent-glow)" : "none",
               }}
             >
               {line.text}

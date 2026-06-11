@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { SearchResults } from "../../types/music"
 import SongCard from "../media/SongCard"
 import AlbumCard from "../media/AlbumCard"
@@ -14,13 +15,14 @@ interface SearchResultsProps {
 }
 
 export default function SearchResultsView({ results, isLoading, query }: SearchResultsProps) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState("songs")
 
   const tabs = [
-    { id: "songs", label: `Songs (${results?.songs.length || 0})` },
-    { id: "albums", label: `Albums (${results?.albums.length || 0})` },
-    { id: "artists", label: `Artists (${results?.artists.length || 0})` },
-    { id: "playlists", label: `Playlists (${results?.playlists.length || 0})` },
+    { id: "songs", label: `${t("search.songs")} (${results?.songs.length || 0})` },
+    { id: "albums", label: `${t("search.albums")} (${results?.albums.length || 0})` },
+    { id: "artists", label: `${t("search.artists")} (${results?.artists.length || 0})` },
+    { id: "playlists", label: `${t("search.playlists")} (${results?.playlists.length || 0})` },
   ]
 
   if (isLoading) {
@@ -44,8 +46,8 @@ export default function SearchResultsView({ results, isLoading, query }: SearchR
 
   if (!hasAnyResults) {
     return (
-      <p className="mt-8 text-center text-sm" style={{ color: "var(--text-muted)" }}>
-        No results for &ldquo;{query}&rdquo;
+      <p className="mt-8 text-center text-sm text-muted">
+        {t("common.noResultsFor", { query })}
       </p>
     )
   }

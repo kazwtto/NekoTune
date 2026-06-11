@@ -1,6 +1,5 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::process::Command;
 use std::sync::LazyLock;
 
 static CLIENT: LazyLock<Client> = LazyLock::new(|| {
@@ -10,17 +9,39 @@ static CLIENT: LazyLock<Client> = LazyLock::new(|| {
         .expect("Failed to create HTTP client")
 });
 
-const INNERTUBE_API_KEY: &str = "AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30";
+const WEB_REMIX_VERSION: &str = "1.20250310.01.00";
+const WEB_REMIX_CLIENT_ID: &str = "67";
 
-fn get_context() -> serde_json::Value {
+const VISITOR_DATA: &str = "CgtsZG1ySnZiQWtSbyiMjuGSBg%3D%3D";
+
+fn get_browse_context() -> serde_json::Value {
     serde_json::json!({
         "client": {
             "clientName": "WEB_REMIX",
-            "clientVersion": "1.20241127.01.00",
+            "clientVersion": WEB_REMIX_VERSION,
             "hl": "en",
-            "gl": "US"
+            "gl": "US",
+            "visitorData": VISITOR_DATA
+        },
+        "request": {
+            "internalExperimentFlags": [],
+            "useSsl": true
         }
     })
+}
+
+fn yt_client(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
+    req.header("X-Goog-Api-Format-Version", "1")
+        .header("X-YouTube-Client-Name", WEB_REMIX_CLIENT_ID)
+        .header("X-YouTube-Client-Version", WEB_REMIX_VERSION)
+        .header("X-Origin", "https://music.youtube.com")
+        .header("Referer", "https://music.youtube.com/")
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StreamData {
+    pub url: String,
+    pub duration: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -173,7 +194,6 @@ fn extract_video_id_from_item(item: &serde_json::Value) -> Option<String> {
     if let Some(vid) = item.get("videoId").and_then(|v| v.as_str()) {
         return Some(vid.to_string());
     }
-
     if let Some(vid) = item
         .get("playlistItemData")
         .and_then(|d| d.get("videoId"))
@@ -181,23 +201,18 @@ fn extract_video_id_from_item(item: &serde_json::Value) -> Option<String> {
     {
         return Some(vid.to_string());
     }
-
     if let Some(vid) = item
         .get("overlay")
         .and_then(|o| o.get("musicItemThumbnailOverlayRenderer"))
         .and_then(|r| r.get("content"))
         .and_then(|c| c.get("musicPlayButtonRenderer"))
         .and_then(|b| b.get("playNavigationEndpoint"))
-        .and_then(|e| {
-            e.get("watchEndpoint")
-                .or_else(|| e.get("watchPlaylistEndpoint"))
-        })
-        .and_then(|w| w.get("videoId").or_else(|| w.get("playlistId")))
+        .and_then(|e| e.get("watchEndpoint"))
+        .and_then(|w| w.get("videoId"))
         .and_then(|v| v.as_str())
     {
         return Some(vid.to_string());
     }
-
     if let Some(vid) = item
         .get("navigationEndpoint")
         .and_then(|n| n.get("watchEndpoint"))
@@ -206,7 +221,6 @@ fn extract_video_id_from_item(item: &serde_json::Value) -> Option<String> {
     {
         return Some(vid.to_string());
     }
-
     None
 }
 
@@ -232,7 +246,6 @@ fn extract_duration_from_item(item: &serde_json::Value) -> u32 {
     {
         return parse_duration(dur);
     }
-
     if let Some(dur) = item
         .get("fixedColumns")
         .and_then(|f| f.as_array())
@@ -244,28 +257,13 @@ fn extract_duration_from_item(item: &serde_json::Value) -> u32 {
     {
         return parse_duration(dur);
     }
-
-    if let Some(dur) = item
-        .get("lengthText")
-        .and_then(|l| l.get("accessibility"))
-        .and_then(|a| a.get("accessibilityData"))
-        .and_then(|d| d.get("label"))
-        .and_then(|v| v.as_str())
-    {
-        return parse_duration(dur);
-    }
-
     0
 }
 
 fn extract_title_from_item(item: &serde_json::Value) -> String {
-    if let Some(t) = item
-        .get("title")
-        .and_then(get_text_from_runs)
-    {
+    if let Some(t) = item.get("title").and_then(get_text_from_runs) {
         return t;
     }
-
     if let Some(t) = item
         .get("flexColumns")
         .and_then(|f| f.as_array())
@@ -276,7 +274,6 @@ fn extract_title_from_item(item: &serde_json::Value) -> String {
     {
         return t;
     }
-
     "Unknown".to_string()
 }
 
@@ -294,45 +291,36 @@ fn extract_artist_from_item(item: &serde_json::Value) -> (String, Option<String>
             .map(|s| s.to_string());
         return (name, id);
     }
-
     if let Some(columns) = item.get("flexColumns").and_then(|f| f.as_array()) {
         if columns.len() >= 2 {
-            let second = &columns[1];
-            if let Some(text) = second
+            if let Some(text) = columns[1]
                 .get("musicResponsiveListItemFlexColumnRenderer")
                 .and_then(|r| r.get("text"))
                 .and_then(get_text_from_runs)
             {
                 if !text.is_empty() {
-                    let parts: Vec<&str> = text.splitn(2, " - ").collect();
-                    if parts.len() == 2 {
-                        return (parts[1].to_string(), None);
+                    if let Some(artist) = text.splitn(2, " - ").nth(1) {
+                        return (artist.to_string(), None);
                     }
-                    let parts: Vec<&str> = text.splitn(2, "  ").collect();
-                    if parts.len() == 2 {
-                        return (parts[1].to_string(), None);
+                    if let Some(artist) = text.splitn(2, "  ").nth(1) {
+                        return (artist.to_string(), None);
                     }
-                    let parts: Vec<&str> = text.splitn(2, '·').collect();
-                    if parts.len() == 2 {
-                        return (parts[1].trim().to_string(), None);
+                    if let Some(artist) = text.splitn(2, '·').nth(1) {
+                        return (artist.trim().to_string(), None);
                     }
                 }
             }
         }
     }
-
     ("Unknown".to_string(), None)
 }
 
-
 fn parse_song_from_music_item(item: &serde_json::Value) -> Option<SongData> {
     let video_id = extract_video_id_from_item(item)?;
-
     let title = extract_title_from_item(item);
     let (artist, artist_id) = extract_artist_from_item(item);
     let album_art_url = extract_thumbnail_from_item(item);
     let duration = extract_duration_from_item(item);
-
     Some(SongData {
         id: video_id.clone(),
         video_id,
@@ -371,9 +359,7 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
         .get("title")
         .and_then(get_text_from_runs)
         .unwrap_or_else(|| "Unknown".to_string());
-    let subtitle = item
-        .get("subtitle")
-        .and_then(get_text_from_runs);
+    let subtitle = item.get("subtitle").and_then(get_text_from_runs);
     let cover_url = item
         .get("thumbnailRenderer")
         .and_then(|t| t.get("musicThumbnailRenderer"))
@@ -451,15 +437,11 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
 
 pub async fn fetch_home_feed() -> Result<Vec<HomeSection>, String> {
     let body = serde_json::json!({
-        "context": get_context(),
+        "context": get_browse_context(),
         "browseId": "FEmusic_home"
     });
 
-    let resp = CLIENT
-        .post(format!(
-            "https://music.youtube.com/youtubei/v1/browse?key={}",
-            INNERTUBE_API_KEY
-        ))
+    let resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/browse"))
         .json(&body)
         .send()
         .await
@@ -495,7 +477,6 @@ pub async fn fetch_home_feed() -> Result<Vec<HomeSection>, String> {
                     .unwrap_or_else(|| "Recommended".to_string());
 
                 let mut items = Vec::new();
-
                 if let Some(contents) = carousel.get("contents").and_then(|c| c.as_array()) {
                     for content_item in contents {
                         if let Some(two_row) = content_item.get("musicTwoRowItemRenderer") {
@@ -505,7 +486,6 @@ pub async fn fetch_home_feed() -> Result<Vec<HomeSection>, String> {
                         }
                     }
                 }
-
                 if !items.is_empty() {
                     sections.push(HomeSection { title, items });
                 }
@@ -518,15 +498,11 @@ pub async fn fetch_home_feed() -> Result<Vec<HomeSection>, String> {
 
 pub async fn search_music(query: &str) -> Result<SearchResults, String> {
     let body = serde_json::json!({
-        "context": get_context(),
+        "context": get_browse_context(),
         "query": query
     });
 
-    let resp = CLIENT
-        .post(format!(
-            "https://music.youtube.com/youtubei/v1/search?key={}",
-            INNERTUBE_API_KEY
-        ))
+    let resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/search"))
         .json(&body)
         .send()
         .await
@@ -567,7 +543,6 @@ pub async fn search_music(query: &str) -> Result<SearchResults, String> {
                     }
                 }
             }
-
             if let Some(item_section) = section.get("itemSectionRenderer") {
                 if let Some(items) = item_section.get("contents").and_then(|c| c.as_array()) {
                     for item in items {
@@ -597,12 +572,12 @@ fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults
         let cover_url = extract_thumbnail_from_item(item);
         let duration = extract_duration_from_item(item);
 
-        let artist = if subtitle_text.contains(" - ") {
-            subtitle_text.splitn(2, " - ").last().unwrap_or("Unknown").to_string()
-        } else if subtitle_text.contains("  ") {
-            subtitle_text.splitn(2, "  ").last().unwrap_or("Unknown").to_string()
-        } else if subtitle_text.contains('·') {
-            subtitle_text.splitn(2, '·').last().unwrap_or("Unknown").trim().to_string()
+        let artist = if let Some(a) = subtitle_text.splitn(2, " - ").nth(1) {
+            a.to_string()
+        } else if let Some(a) = subtitle_text.splitn(2, "  ").nth(1) {
+            a.to_string()
+        } else if let Some(a) = subtitle_text.splitn(2, '·').nth(1) {
+            a.trim().to_string()
         } else {
             subtitle_text
         };
@@ -626,7 +601,6 @@ fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults
         .and_then(|n| n.get("browseEndpoint"))
         .and_then(|b| b.get("browseId"))
         .and_then(|b| b.as_str());
-
     let page_type = nav
         .and_then(|n| n.get("browseEndpoint"))
         .and_then(|b| b.get("browseEndpointContextSupportedConfigs"))
@@ -634,9 +608,7 @@ fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults
         .and_then(|c| c.get("pageType"))
         .and_then(|t| t.as_str())
         .unwrap_or("");
-
     let title = extract_title_from_item(item);
-
     let subtitle = item
         .get("flexColumns")
         .and_then(|f| f.as_array())
@@ -645,7 +617,6 @@ fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults
         .and_then(|r| r.get("text"))
         .and_then(get_text_from_runs)
         .unwrap_or_default();
-
     let cover_url = extract_thumbnail_from_item(item);
 
     if let Some(bid) = browse_id {
@@ -674,18 +645,6 @@ fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults
                     albums: Vec::new(),
                 });
             }
-            "MUSIC_PAGE_TYPE_PLAYLIST" => {
-                results.playlists.push(PlaylistData {
-                    id: bid.to_string(),
-                    browse_id: bid.to_string(),
-                    title,
-                    description: Some(subtitle),
-                    cover_url,
-                    song_count: None,
-                    owner: None,
-                    songs: Vec::new(),
-                });
-            }
             _ => {
                 results.playlists.push(PlaylistData {
                     id: bid.to_string(),
@@ -704,15 +663,11 @@ fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults
 
 pub async fn get_search_suggestions(query: &str) -> Result<Vec<String>, String> {
     let body = serde_json::json!({
-        "context": get_context(),
+        "context": get_browse_context(),
         "input": query
     });
 
-    let resp = CLIENT
-        .post(format!(
-            "https://music.youtube.com/youtubei/v1/music/get_search_suggestions?key={}",
-            INNERTUBE_API_KEY
-        ))
+    let resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/music/get_search_suggestions"))
         .json(&body)
         .send()
         .await
@@ -724,17 +679,13 @@ pub async fn get_search_suggestions(query: &str) -> Result<Vec<String>, String> 
         .map_err(|e| format!("Parse failed: {}", e))?;
 
     let mut suggestions = Vec::new();
-
     if let Some(contents) = data.get("contents").and_then(|c| c.as_array()) {
         for content in contents {
-            if let Some(suggestions_renderer) = content.get("searchSuggestionsSectionRenderer") {
-                if let Some(items) = suggestions_renderer
-                    .get("contents")
-                    .and_then(|c| c.as_array())
-                {
+            if let Some(sr) = content.get("searchSuggestionsSectionRenderer") {
+                if let Some(items) = sr.get("contents").and_then(|c| c.as_array()) {
                     for item in items {
-                        if let Some(suggestion_renderer) = item.get("searchSuggestionRenderer") {
-                            if let Some(text) = suggestion_renderer
+                        if let Some(r) = item.get("searchSuggestionRenderer") {
+                            if let Some(text) = r
                                 .get("searchSuggestionTerm")
                                 .and_then(|t| t.get("runs"))
                                 .and_then(|r| r.as_array())
@@ -750,17 +701,18 @@ pub async fn get_search_suggestions(query: &str) -> Result<Vec<String>, String> 
             }
         }
     }
-
     Ok(suggestions)
 }
 
 fn get_music_responsive_header(data: &serde_json::Value) -> Option<&serde_json::Value> {
     if let Some(hr) = data.get("header") {
-        if hr.get("musicDetailHeaderRenderer").is_some() || hr.get("musicPlaylistHeaderRenderer").is_some() || hr.get("musicImmersiveHeaderRenderer").is_some() {
+        if hr.get("musicDetailHeaderRenderer").is_some()
+            || hr.get("musicPlaylistHeaderRenderer").is_some()
+            || hr.get("musicImmersiveHeaderRenderer").is_some()
+        {
             return Some(hr);
         }
     }
-
     data.get("contents")
         .and_then(|c| c.get("twoColumnBrowseResultsRenderer"))
         .and_then(|tc| tc.get("tabs"))
@@ -772,31 +724,21 @@ fn get_music_responsive_header(data: &serde_json::Value) -> Option<&serde_json::
         .and_then(|s| s.get("contents"))
         .and_then(|c| c.as_array())
         .and_then(|arr| arr.first())
-        .and_then(|s| s.get("musicResponsiveHeaderRenderer"))
-        .map(|hr| hr)
-        .or_else(|| {
-            data.get("contents")
-                .and_then(|c| c.get("twoColumnBrowseResultsRenderer"))
-                .and_then(|tc| tc.get("tabs"))
-                .and_then(|t| t.as_array())
-                .and_then(|t| t.first())
-                .and_then(|t| t.get("tabRenderer"))
-                .and_then(|t| t.get("content"))
-                .and_then(|c| c.get("sectionListRenderer"))
-                .and_then(|s| s.get("contents"))
-                .and_then(|c| c.as_array())
-                .and_then(|arr| arr.first())
-                .and_then(|s| s.get("musicResponsiveHeaderRenderer"))
+        .and_then(|s| {
+            s.get("musicResponsiveHeaderRenderer")
         })
 }
 
-fn extract_header_info(data: &serde_json::Value) -> (String, String, Option<String>, Option<u32>, Option<String>, Option<u32>) {
+fn extract_header_info(
+    data: &serde_json::Value,
+) -> (String, String, Option<String>, Option<u32>, Option<String>, Option<u32>) {
     let header = get_music_responsive_header(data);
 
     if let Some(hr) = header {
         if hr.get("musicImmersiveHeaderRenderer").is_some() {
             let h = hr.get("musicImmersiveHeaderRenderer").unwrap();
-            let name = h.get("title")
+            let name = h
+                .get("title")
                 .and_then(|t| t.get("runs"))
                 .and_then(|r| r.as_array())
                 .and_then(|a| a.first())
@@ -804,7 +746,8 @@ fn extract_header_info(data: &serde_json::Value) -> (String, String, Option<Stri
                 .and_then(|t| t.as_str())
                 .unwrap_or("Unknown")
                 .to_string();
-            let cover_url = h.get("thumbnail")
+            let cover_url = h
+                .get("thumbnail")
                 .and_then(|t| t.get("musicThumbnailRenderer"))
                 .and_then(|t| t.get("thumbnail"))
                 .and_then(|t| t.get("thumbnails"))
@@ -814,34 +757,43 @@ fn extract_header_info(data: &serde_json::Value) -> (String, String, Option<Stri
                         .and_then(|t| t.get("thumbnails"))
                         .and_then(extract_thumbnails)
                 });
-            let subscribers = h.get("monthlyListenerCount")
+            let subscribers = h
+                .get("monthlyListenerCount")
                 .and_then(|m| m.get("runs"))
                 .and_then(|r| r.as_array())
                 .and_then(|a| a.first())
                 .and_then(|r| r.get("text"))
                 .and_then(|t| t.as_str())
                 .map(|s| s.to_string());
-            return (name, "Unknown".to_string(), cover_url, None, subscribers, None);
+            return (
+                name,
+                "Unknown".to_string(),
+                cover_url,
+                None,
+                subscribers,
+                None,
+            );
         }
 
-        let header_obj = hr.get("musicResponsiveHeaderRenderer")
+        let header_obj = hr
+            .get("musicResponsiveHeaderRenderer")
             .or_else(|| hr.get("musicDetailHeaderRenderer"))
             .or_else(|| hr.get("musicPlaylistHeaderRenderer"))
             .unwrap_or(hr);
 
-        let title = header_obj.get("title")
+        let title = header_obj
+            .get("title")
             .and_then(get_text_from_runs)
             .unwrap_or_else(|| "Unknown".to_string());
 
-        let subtitle_text = header_obj.get("subtitle")
+        let artist_name = header_obj
+            .get("straplineTextOne")
             .and_then(get_text_from_runs)
-            .unwrap_or_default();
+            .or_else(|| header_obj.get("subtitle").and_then(get_text_from_runs))
+            .unwrap_or_else(|| "Unknown".to_string());
 
-        let artist_name = header_obj.get("straplineTextOne")
-            .and_then(get_text_from_runs)
-            .unwrap_or_else(|| subtitle_text.clone());
-
-        let artist_id = header_obj.get("straplineTextOne")
+        let artist_id = header_obj
+            .get("straplineTextOne")
             .and_then(|s| s.get("runs"))
             .and_then(|r| r.as_array())
             .and_then(|a| a.first())
@@ -849,73 +801,92 @@ fn extract_header_info(data: &serde_json::Value) -> (String, String, Option<Stri
             .and_then(|n| n.get("browseEndpoint"))
             .and_then(|b| b.get("browseId"))
             .and_then(|b| b.as_str())
-            .map(|s| s.to_string())
-            .or_else(|| {
-                header_obj.get("subtitle")
-                    .and_then(|s| s.get("runs"))
-                    .and_then(|r| r.as_array())
-                    .and_then(|a| a.iter().find(|r| r.get("navigationEndpoint").is_some()))
-                    .and_then(|r| r.get("navigationEndpoint"))
-                    .and_then(|n| n.get("browseEndpoint"))
-                    .and_then(|b| b.get("browseId"))
-                    .and_then(|b| b.as_str())
-                    .map(|s| s.to_string())
-            });
+            .map(|s| s.to_string());
 
-        let cover_url = header_obj.get("thumbnail")
+        let cover_url = header_obj
+            .get("thumbnail")
             .and_then(|t| t.get("musicThumbnailRenderer"))
             .and_then(|t| t.get("thumbnail"))
             .and_then(|t| t.get("thumbnails"))
-            .or_else(|| header_obj.get("thumbnail").and_then(|t| t.get("thumbnails")))
-            .or_else(|| header_obj.get("image")
-                .and_then(|i| i.get("musicThumbnailRenderer"))
-                .and_then(|t| t.get("thumbnail"))
-                .and_then(|t| t.get("thumbnails")))
+            .or_else(|| {
+                header_obj
+                    .get("thumbnail")
+                    .and_then(|t| t.get("thumbnails"))
+            })
+            .or_else(|| {
+                header_obj
+                    .get("image")
+                    .and_then(|i| i.get("musicThumbnailRenderer"))
+                    .and_then(|t| t.get("thumbnail"))
+                    .and_then(|t| t.get("thumbnails"))
+            })
             .and_then(extract_thumbnails);
+
+        let subtitle_text = header_obj
+            .get("subtitle")
+            .and_then(get_text_from_runs)
+            .unwrap_or_default();
 
         let year = subtitle_text
             .split_whitespace()
             .last()
             .and_then(|n| n.parse::<u32>().ok());
 
-        let song_count = header_obj.get("secondSubtitle")
+        let song_count = header_obj
+            .get("secondSubtitle")
             .and_then(get_text_from_runs)
-            .or_else(|| header_obj.get("secondSubtitle")
-                .and_then(|s| s.get("simpleText"))
-                .and_then(|s| s.as_str())
-                .map(|s| s.to_string()))
+            .or_else(|| {
+                header_obj
+                    .get("secondSubtitle")
+                    .and_then(|s| s.get("simpleText"))
+                    .and_then(|s| s.as_str())
+                    .map(|s| s.to_string())
+            })
             .and_then(|s| {
                 s.split_whitespace()
                     .find(|part| part.chars().all(|c| c.is_ascii_digit()))
                     .and_then(|n| n.parse::<u32>().ok())
             });
 
-        let _owner = header_obj.get("subtitle")
-            .and_then(get_text_from_runs);
-
-        return (title, artist_name, artist_id, year, cover_url, song_count);
+        return (
+            title,
+            artist_name,
+            artist_id,
+            year,
+            cover_url,
+            song_count,
+        );
     }
 
-    let mf = data.get("microformat")
-        .and_then(|m| m.get("microformatDataRenderer"));
-
-    if let Some(mf) = mf {
-        let title = mf.get("title")
+    if let Some(mf) = data
+        .get("microformat")
+        .and_then(|m| m.get("microformatDataRenderer"))
+    {
+        let title = mf
+            .get("title")
             .and_then(|t| t.as_str())
             .unwrap_or("Unknown")
             .to_string();
-        let description = mf.get("description")
+        let description = mf
+            .get("description")
             .and_then(|d| d.as_str())
             .unwrap_or("")
             .to_string();
-        let cover_url = mf.get("thumbnail")
+        let cover_url = mf
+            .get("thumbnail")
             .and_then(|t| t.get("thumbnails"))
             .and_then(extract_thumbnails);
-
         return (title, description, None, None, cover_url, None);
     }
 
-    ("Unknown".to_string(), "Unknown".to_string(), None, None, None, None)
+    (
+        "Unknown".to_string(),
+        "Unknown".to_string(),
+        None,
+        None,
+        None,
+        None,
+    )
 }
 
 fn parse_song_items(shelf: &serde_json::Value) -> Vec<SongData> {
@@ -955,33 +926,30 @@ fn get_two_column_secondary(data: &serde_json::Value) -> Option<&serde_json::Val
 fn find_song_shelf(data: &serde_json::Value) -> Option<&serde_json::Value> {
     if let Some(shelf) = get_two_column_secondary(data)
         .and_then(|c| c.as_array())
-        .and_then(|arr| arr.iter().find(|s| {
-            s.get("musicShelfRenderer").is_some() || s.get("musicPlaylistShelfRenderer").is_some()
-        }))
+        .and_then(|arr| {
+            arr.iter()
+                .find(|s| s.get("musicShelfRenderer").is_some() || s.get("musicPlaylistShelfRenderer").is_some())
+        })
         .and_then(|s| s.get("musicShelfRenderer").or_else(|| s.get("musicPlaylistShelfRenderer")))
     {
         return Some(shelf);
     }
-
     get_section_contents(data)
         .and_then(|c| c.as_array())
-        .and_then(|arr| arr.iter().find(|s| {
-            s.get("musicShelfRenderer").is_some() || s.get("musicPlaylistShelfRenderer").is_some()
-        }))
+        .and_then(|arr| {
+            arr.iter()
+                .find(|s| s.get("musicShelfRenderer").is_some() || s.get("musicPlaylistShelfRenderer").is_some())
+        })
         .and_then(|s| s.get("musicShelfRenderer").or_else(|| s.get("musicPlaylistShelfRenderer")))
 }
 
 pub async fn get_playlist(browse_id: &str) -> Result<PlaylistData, String> {
     let body = serde_json::json!({
-        "context": get_context(),
+        "context": get_browse_context(),
         "browseId": browse_id
     });
 
-    let resp = CLIENT
-        .post(format!(
-            "https://music.youtube.com/youtubei/v1/browse?key={}",
-            INNERTUBE_API_KEY
-        ))
+    let resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/browse"))
         .json(&body)
         .send()
         .await
@@ -992,7 +960,8 @@ pub async fn get_playlist(browse_id: &str) -> Result<PlaylistData, String> {
         .await
         .map_err(|e| format!("Parse failed: {}", e))?;
 
-    let (title, artist_name, _artist_id, _year, cover_url, song_count) = extract_header_info(&data);
+    let (title, artist_name, _artist_id, _year, cover_url, song_count) =
+        extract_header_info(&data);
 
     let songs = find_song_shelf(&data)
         .map(parse_song_items)
@@ -1012,15 +981,11 @@ pub async fn get_playlist(browse_id: &str) -> Result<PlaylistData, String> {
 
 pub async fn get_album(browse_id: &str) -> Result<AlbumData, String> {
     let body = serde_json::json!({
-        "context": get_context(),
+        "context": get_browse_context(),
         "browseId": browse_id
     });
 
-    let resp = CLIENT
-        .post(format!(
-            "https://music.youtube.com/youtubei/v1/browse?key={}",
-            INNERTUBE_API_KEY
-        ))
+    let resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/browse"))
         .json(&body)
         .send()
         .await
@@ -1042,7 +1007,7 @@ pub async fn get_album(browse_id: &str) -> Result<AlbumData, String> {
         browse_id: browse_id.to_string(),
         title,
         artist,
-        artist_id: artist_id,
+        artist_id,
         year,
         cover_url,
         song_count,
@@ -1052,15 +1017,11 @@ pub async fn get_album(browse_id: &str) -> Result<AlbumData, String> {
 
 pub async fn get_artist(browse_id: &str) -> Result<ArtistData, String> {
     let body = serde_json::json!({
-        "context": get_context(),
+        "context": get_browse_context(),
         "browseId": browse_id
     });
 
-    let resp = CLIENT
-        .post(format!(
-            "https://music.youtube.com/youtubei/v1/browse?key={}",
-            INNERTUBE_API_KEY
-        ))
+    let resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/browse"))
         .json(&body)
         .send()
         .await
@@ -1083,7 +1044,6 @@ pub async fn get_artist(browse_id: &str) -> Result<ArtistData, String> {
                 .and_then(|r| r.as_array())
                 .and_then(|a| a.first())
                 .and_then(|r| r.get("text"))
-                .or_else(|| t.get("dynamicTextViewModel").and_then(|d| d.get("text")).and_then(|t| t.get("content")))
         })
         .and_then(|t| t.as_str())
         .unwrap_or("Unknown")
@@ -1108,14 +1068,7 @@ pub async fn get_artist(browse_id: &str) -> Result<ArtistData, String> {
         .and_then(|a| a.first())
         .and_then(|r| r.get("text"))
         .and_then(|t| t.as_str())
-        .map(|s| s.to_string())
-        .or_else(|| {
-            header
-                .and_then(|h| h.get("subtitle"))
-                .and_then(|s| s.get("content"))
-                .and_then(|t| t.as_str())
-                .map(|s| s.to_string())
-        });
+        .map(|s| s.to_string());
 
     let mut songs = Vec::new();
     let mut albums = Vec::new();
@@ -1127,7 +1080,6 @@ pub async fn get_artist(browse_id: &str) -> Result<ArtistData, String> {
                     .get("title")
                     .and_then(get_text_from_runs)
                     .unwrap_or_default();
-
                 if shelf_title == "Songs" || shelf_title == "Top songs" {
                     if let Some(items) = shelf.get("contents").and_then(|c| c.as_array()) {
                         for item in items {
@@ -1146,8 +1098,10 @@ pub async fn get_artist(browse_id: &str) -> Result<ArtistData, String> {
                     .and_then(|h| h.get("title"))
                     .and_then(get_text_from_runs)
                     .unwrap_or_default();
-
-                if carousel_title == "Albums" || carousel_title == "Singles" || carousel_title == "EPs" {
+                if carousel_title == "Albums"
+                    || carousel_title == "Singles"
+                    || carousel_title == "EPs"
+                {
                     if let Some(contents) = carousel.get("contents").and_then(|c| c.as_array()) {
                         for content_item in contents {
                             if let Some(renderer) = content_item.get("musicTwoRowItemRenderer") {
@@ -1156,20 +1110,17 @@ pub async fn get_artist(browse_id: &str) -> Result<ArtistData, String> {
                                     .and_then(|n| n.get("browseEndpoint"))
                                     .and_then(|b| b.get("browseId"))
                                     .and_then(|b| b.as_str());
-
                                 if let Some(bid) = album_browse_id {
                                     let title = renderer
                                         .get("title")
                                         .and_then(get_text_from_runs)
                                         .unwrap_or_else(|| "Unknown".to_string());
-
                                     let cover_url = renderer
                                         .get("thumbnailRenderer")
                                         .and_then(|t| t.get("musicThumbnailRenderer"))
                                         .and_then(|t| t.get("thumbnail"))
                                         .and_then(|t| t.get("thumbnails"))
                                         .and_then(extract_thumbnails);
-
                                     let year = renderer
                                         .get("subtitle")
                                         .and_then(get_text_from_runs)
@@ -1178,7 +1129,6 @@ pub async fn get_artist(browse_id: &str) -> Result<ArtistData, String> {
                                                 .last()
                                                 .and_then(|n| n.parse::<u32>().ok())
                                         });
-
                                     albums.push(AlbumData {
                                         id: bid.to_string(),
                                         browse_id: bid.to_string(),
@@ -1210,84 +1160,13 @@ pub async fn get_artist(browse_id: &str) -> Result<ArtistData, String> {
     })
 }
 
-fn find_ytdlp_path() -> Option<String> {
-    let possible_paths = vec![
-        "yt-dlp.exe".to_string(),
-        {
-            let mut p = std::env::current_exe().unwrap_or_default();
-            p.pop();
-            p.push("bin");
-            p.push("yt-dlp.exe");
-            p.to_string_lossy().to_string()
-        },
-        {
-            let mut p = std::env::current_exe().unwrap_or_default();
-            p.pop();
-            p.push("yt-dlp.exe");
-            p.to_string_lossy().to_string()
-        },
-    ];
-
-    for path in &possible_paths {
-        if std::path::Path::new(path).exists() {
-            return Some(path.clone());
-        }
-    }
-
-    let output = Command::new("where").arg("yt-dlp").output().ok();
-    if let Some(out) = output {
-        if out.status.success() {
-            let stdout = String::from_utf8_lossy(&out.stdout);
-            if let Some(first_line) = stdout.lines().next() {
-                let trimmed = first_line.trim();
-                if std::path::Path::new(trimmed).exists() {
-                    return Some(trimmed.to_string());
-                }
-            }
-        }
-    }
-
-    None
-}
-
-pub async fn get_stream_url(video_id: &str) -> Result<String, String> {
-    if let Some(ytdlp_path) = find_ytdlp_path() {
-        let output = Command::new(&ytdlp_path)
-            .args([
-                "-f", "ba",
-                "--get-url",
-                "--no-warnings",
-                "--no-playlist",
-                &format!("https://www.youtube.com/watch?v={}", video_id),
-            ])
-            .output()
-            .map_err(|e| format!("Failed to run yt-dlp: {}", e))?;
-
-        if output.status.success() {
-            let url = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if !url.is_empty() && url.starts_with("http") {
-                return Ok(url);
-            }
-        }
-
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        eprintln!("yt-dlp stderr: {}", stderr);
-    }
-
-    Err("yt-dlp is required for playback. Install it from https://github.com/yt-dlp/yt-dlp/releases and place yt-dlp.exe in the app's bin/ directory or add it to PATH.".to_string())
-}
-
 pub async fn get_lyrics(video_id: &str) -> Result<Option<String>, String> {
     let body = serde_json::json!({
-        "context": get_context(),
+        "context": get_browse_context(),
         "videoId": video_id
     });
 
-    let resp = CLIENT
-        .post(format!(
-            "https://music.youtube.com/youtubei/v1/player?key={}",
-            INNERTUBE_API_KEY
-        ))
+    let resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/player"))
         .json(&body)
         .send()
         .await
@@ -1306,15 +1185,11 @@ pub async fn get_lyrics(video_id: &str) -> Result<Option<String>, String> {
         .and_then(|b| b.as_str())
     {
         let lyrics_body = serde_json::json!({
-            "context": get_context(),
+            "context": get_browse_context(),
             "browseId": lyrics_endpoint
         });
 
-        let lyrics_resp = CLIENT
-            .post(format!(
-                "https://music.youtube.com/youtubei/v1/browse?key={}",
-                INNERTUBE_API_KEY
-            ))
+        let lyrics_resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/browse"))
             .json(&lyrics_body)
             .send()
             .await

@@ -9,18 +9,11 @@ const defaultSettings: AppSettings = {
   accentColor: "#7c6aef",
   language: "en-US",
   audioQuality: "medium",
-  downloadPath: "",
   crossfade: 3,
   enableNormalization: true,
   enableSkipSilence: false,
-  enableDiscordRpc: true,
-  minimizeToTray: true,
   autoPlay: false,
   autoSkipOnError: true,
-  stopOnKill: false,
-  gridView: true,
-  gridCellSize: 2,
-  disableScreenshot: false,
 }
 
 interface SettingsStore {

@@ -4,6 +4,7 @@ import Sidebar from "./Sidebar"
 import PlayerBar from "./PlayerBar"
 import NowPlaying from "../player/NowPlaying"
 import { useKeyboard } from "../../hooks/useKeyboard"
+import { useSettingsEffects } from "../../hooks/useSettingsEffects"
 
 interface AppShellProps {
   children: ReactNode
@@ -11,16 +12,14 @@ interface AppShellProps {
 
 export default function AppShell({ children }: AppShellProps) {
   useKeyboard()
+  useSettingsEffects()
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden">
+    <div className="grid h-full w-full flex-1 grid-rows-[auto_1fr_auto] overflow-hidden">
       <Titlebar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex min-h-0 overflow-hidden">
         <Sidebar />
-        <main
-          className="flex-1 overflow-y-auto p-5"
-          style={{ background: "var(--bg-primary)" }}
-        >
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-bg-backdrop pt-6 pl-6">
           {children}
         </main>
       </div>
