@@ -1,278 +1,173 @@
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
-import { useHomeFeed } from "../hooks/useInnertube"
+import { useHomeFeed, useExplore } from "../hooks/useInnertube"
 import { usePlayer } from "../hooks/usePlayer"
 import { usePlayerStore } from "../stores/playerStore"
 import { useScrollPersistence } from "../hooks/useScrollPersistence"
-import SongCard from "../components/media/SongCard"
 import Shimmer from "../components/ui/Shimmer"
-import { RefreshCw, Music, Play, Shuffle } from "lucide-react"
+import ScrollRow from "../components/ui/ScrollRow"
+import { Music, Play, RefreshCw, Shuffle } from "lucide-react"
 import type { Song, Album, Artist, Playlist } from "../types/music"
+import type { MoodGenre } from "../services/innertube"
 import { proxyUrl, highResThumb } from "../services/proxy"
-import { getItem, setItem } from "../utils/storage"
+import AlbumCard from "../components/media/AlbumCard"
+import ArtistCard from "../components/media/ArtistCard"
+import PlaylistCard from "../components/media/PlaylistCard"
 
-const ALBUM_HISTORY_KEY = "nekotune-album-history"
-const ARTIST_HISTORY_KEY = "nekotune-artist-history"
-
-function getAlbumHistory(): Album[] {
-  return getItem<Album[]>(ALBUM_HISTORY_KEY, [])
+function SectionTitle({ title }: { title: string }) {
+  return <h3 className="mb-3 text-base font-bold text-primary">{title}</h3>
 }
 
-function saveAlbumToHistory(album: Album) {
-  const history = getAlbumHistory()
-  const filtered = history.filter((a) => a.browseId !== album.browseId)
-  setItem(ALBUM_HISTORY_KEY, [album, ...filtered].slice(0, 10))
-}
+function TagCarousel({ tags }: { tags: MoodGenre[] }) {
+  const navigate = useNavigate()
 
-function getArtistHistory(): Artist[] {
-  return getItem<Artist[]>(ARTIST_HISTORY_KEY, [])
-}
-
-function saveArtistToHistory(artist: Artist) {
-  const history = getArtistHistory()
-  const filtered = history.filter((a) => a.browseId !== artist.browseId)
-  setItem(ARTIST_HISTORY_KEY, [artist, ...filtered].slice(0, 10))
-}
-
-function HorizontalSection({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string
-  subtitle?: string
-  children: React.ReactNode
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  function scroll(dir: "left" | "right") {
-    if (!scrollRef.current) return
-    const amount = dir === "left" ? -300 : 300
-    scrollRef.current.scrollBy({ left: amount, behavior: "smooth" })
-  }
+  if (tags.length === 0) return null
 
   return (
-    <div className="mb-8">
-      <div className="mb-3 flex items-baseline justify-between">
-        <div>
-          <h3 className="text-lg font-bold text-primary">{title}</h3>
-          {subtitle && <p className="mt-0.5 text-xs text-muted">{subtitle}</p>}
-        </div>
-        <div className="flex gap-1">
+    <div className="mb-5">
+      <ScrollRow className="gap-2">
+        {tags.map((tag, i) => (
           <button
-            onClick={() => scroll("left")}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-muted transition-colors hover:bg-bg-hover hover:text-primary"
+            key={i}
+            onClick={() => {
+              if (tag.browseId) {
+                const url = tag.params
+                  ? `/browse/${encodeURIComponent(tag.browseId)}?params=${encodeURIComponent(tag.params)}`
+                  : `/browse/${encodeURIComponent(tag.browseId)}`
+                navigate(url)
+              }
+            }}
+            className="flex-shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-150 hover:brightness-110"
+            style={{
+              backgroundColor: tag.color || "#8b5cf6",
+              color: "#fff",
+            }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
+            {tag.title}
           </button>
-          <button
-            onClick={() => scroll("right")}
-            className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-muted transition-colors hover:bg-bg-hover hover:text-primary"
+        ))}
+      </ScrollRow>
+    </div>
+  )
+}
+
+function SongRow({ songs, title }: { songs: Song[]; title: string }) {
+  const { play } = usePlayer()
+  const currentSong = usePlayerStore((s) => s.currentSong)
+
+  if (songs.length === 0) return null
+
+  return (
+    <div className="mb-6">
+      <SectionTitle title={title} />
+      <ScrollRow className="gap-2">
+        {songs.map((song, i) => (
+          <div
+            key={song.videoId || i}
+            className={`group flex min-w-[280px] max-w-[280px] cursor-pointer items-center gap-3 rounded-lg p-2 transition-all duration-150 hover:bg-bg-hover ${
+              currentSong?.videoId === song.videoId ? "bg-accent/10" : ""
+            }`}
+            onClick={() => play(song)}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div ref={scrollRef} className="flex gap-3 overflow-x-auto pb-2 scrollbar-none">
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function MixCard({ item }: { item: Album | Playlist }) {
-  const navigate = useNavigate()
-  const { play } = usePlayer()
-  const isAlbum = "songs" in item && "coverUrl" in item
-  const coverUrl = isAlbum ? (item as Album).coverUrl : (item as Playlist).coverUrl
-  const title = item.title
-  const subtitle = isAlbum ? (item as Album).artist : (item as Playlist).owner
-  const browseId = item.browseId
-
-  function handlePlay(e: React.MouseEvent) {
-    e.stopPropagation()
-    if (isAlbum && (item as Album).songs && (item as Album).songs!.length > 0) {
-      play((item as Album).songs![0])
-    }
-  }
-
-  return (
-    <div
-      className="group min-w-[160px] max-w-[160px] cursor-pointer"
-      onClick={() => {
-        if (isAlbum) saveAlbumToHistory(item as Album)
-        navigate(isAlbum ? `/album/${browseId}` : `/playlist/${browseId}`)
-      }}
-    >
-      <div className="relative mb-2.5 aspect-square overflow-hidden rounded-2xl bg-bg-elevated shadow-lg transition-shadow duration-200 group-hover:shadow-xl">
-        {coverUrl ? (
-          <img src={proxyUrl(coverUrl)} alt={title} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-accent/20 to-accent/5">
-            <Music size={36} className="text-muted" />
+            {song.videoId ? (
+              <img
+                src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)}
+                alt=""
+                className="h-12 w-12 flex-shrink-0 rounded-lg object-cover"
+              />
+            ) : (
+              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-bg-elevated">
+                <Music size={16} className="text-muted" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-primary">{song.title}</p>
+              <p className="truncate text-xs text-secondary">{song.artist}</p>
+            </div>
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent opacity-0 shadow-md transition-all duration-150 group-hover:opacity-100">
+              <Play size={14} fill="currentColor" className="ml-0.5 text-white" />
+            </div>
           </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
-        <button
-          onClick={handlePlay}
-          className="absolute bottom-2 right-2 flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-accent opacity-0 shadow-lg transition-all duration-200 group-hover:opacity-100 hover:scale-105"
-        >
-          <Play size={18} fill="currentColor" className="ml-0.5 text-white" />
-        </button>
-      </div>
-      <p className="truncate text-sm font-semibold text-primary">{title}</p>
-      {subtitle && <p className="truncate text-xs text-secondary">{subtitle}</p>}
+        ))}
+      </ScrollRow>
     </div>
   )
 }
 
-function ArtistChipCard({ artist }: { artist: Artist }) {
-  const navigate = useNavigate()
+function AlbumRow({ albums, title }: { albums: Album[]; title: string }) {
+  if (albums.length === 0) return null
 
   return (
-    <div
-      className="group flex min-w-[110px] max-w-[110px] cursor-pointer flex-col items-center gap-2"
-      onClick={() => {
-        saveArtistToHistory(artist)
-        navigate(`/artist/${artist.browseId}`)
-      }}
-    >
-      <div className="relative h-[110px] w-[110px] overflow-hidden rounded-full bg-bg-elevated shadow-lg transition-all duration-200 group-hover:shadow-xl group-hover:ring-2 group-hover:ring-accent/40">
-        {artist.imageUrl ? (
-          <img src={proxyUrl(artist.imageUrl)} alt={artist.name} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Music size={28} className="text-muted" />
+    <div className="mb-6">
+      <SectionTitle title={title} />
+      <ScrollRow className="gap-3">
+        {albums.map((album) => (
+          <div key={album.browseId} className="min-w-[160px] max-w-[160px]">
+            <AlbumCard album={album} />
           </div>
-        )}
-      </div>
-      <p className="truncate text-center text-xs font-medium text-primary">{artist.name}</p>
+        ))}
+      </ScrollRow>
     </div>
   )
 }
 
-function RecentSongCard({ song }: { song: Song }) {
-  const { play } = usePlayer()
+function ArtistRow({ artists, title }: { artists: Artist[]; title: string }) {
+  if (artists.length === 0) return null
 
   return (
-    <div
-      className="group flex cursor-pointer items-center gap-3 rounded-xl bg-bg-surface/60 p-2.5 transition-all duration-150 hover:bg-bg-hover"
-      onClick={() => play(song)}
-    >
-      {song.videoId ? (
-        <img
-          src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)}
-          alt=""
-          className="h-12 w-12 flex-shrink-0 rounded-lg object-cover shadow-md"
-        />
-      ) : (
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-bg-elevated">
-          <Music size={16} className="text-muted" />
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-primary">{song.title}</p>
-        <p className="truncate text-xs text-secondary">{song.artist}</p>
-      </div>
-      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent opacity-0 shadow-md transition-all duration-150 group-hover:opacity-100">
-        <Play size={14} fill="currentColor" className="ml-0.5 text-white" />
-      </div>
+    <div className="mb-6">
+      <SectionTitle title={title} />
+      <ScrollRow className="gap-4">
+        {artists.map((artist) => (
+          <ArtistCard key={artist.browseId} artist={artist} />
+        ))}
+      </ScrollRow>
     </div>
   )
 }
 
-function RecentAlbumCard({ album }: { album: Album }) {
-  const navigate = useNavigate()
+function PlaylistRow({ playlists, title }: { playlists: Playlist[]; title: string }) {
+  if (playlists.length === 0) return null
 
   return (
-    <div
-      className="group flex cursor-pointer items-center gap-3 rounded-xl bg-bg-surface/60 p-2.5 transition-all duration-150 hover:bg-bg-hover"
-      onClick={() => {
-        saveAlbumToHistory(album)
-        navigate(`/album/${album.browseId}`)
-      }}
-    >
-      {album.coverUrl ? (
-        <img
-          src={proxyUrl(album.coverUrl)}
-          alt=""
-          className="h-12 w-12 flex-shrink-0 rounded-lg object-cover shadow-md"
-        />
-      ) : (
-        <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-bg-elevated">
-          <Music size={16} className="text-muted" />
-        </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-primary">{album.title}</p>
-        <p className="truncate text-xs text-secondary">{album.artist}</p>
-      </div>
+    <div className="mb-6">
+      <SectionTitle title={title} />
+      <ScrollRow className="gap-3">
+        {playlists.map((pl) => (
+          <div key={pl.browseId} className="min-w-[160px] max-w-[160px]">
+            <PlaylistCard playlist={pl} />
+          </div>
+        ))}
+      </ScrollRow>
     </div>
   )
 }
 
-function SectionContent({ items }: { items: (Song | Album | Artist | Playlist)[] }) {
-  const songs = items.filter((i): i is Song => "videoId" in i)
-  const albums = items.filter((i): i is Album => "browseId" in i && "songs" in i && "coverUrl" in i)
-  const artists = items.filter((i): i is Artist => "browseId" in i && "imageUrl" in i && !("songs" in i))
-  const playlists = items.filter((i): i is Playlist => "browseId" in i && !("songs" in i) && !("imageUrl" in i))
-
-  if (songs.length > 0) {
-    return (
-      <div className="flex flex-col gap-1">
-        {songs.slice(0, 6).map((song, i) => (
-          <SongCard key={song.videoId || i} song={song} />
-        ))}
-      </div>
-    )
-  }
-
-  if (artists.length > 0) {
-    return (
-      <div className="flex gap-5 overflow-x-auto pb-2 scrollbar-none">
-        {artists.slice(0, 8).map((artist) => (
-          <ArtistChipCard key={artist.browseId} artist={artist} />
-        ))}
-      </div>
-    )
-  }
-
-  const mixes = [...albums, ...playlists]
-  if (mixes.length > 0) {
-    return (
-      <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
-        {mixes.slice(0, 8).map((item) => (
-          <MixCard key={item.browseId} item={item} />
-        ))}
-      </div>
-    )
-  }
-
-  return null
-}
-
-function extractTopArtists(songs: Song[]): { name: string; count: number }[] {
-  const counts = new Map<string, number>()
-  for (const s of songs) {
-    if (s.artist) {
-      counts.set(s.artist, (counts.get(s.artist) || 0) + 1)
-    }
-  }
-  return Array.from(counts.entries())
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
+function getLocalizedTitle(title: string, t: (key: string) => string): string {
+  const lower = title.toLowerCase()
+  if (lower.includes("quick pick")) return t("home.quickPicks")
+  if (lower.includes("listen again")) return t("home.listenAgain")
+  if (lower.includes("new release")) return t("home.newReleases")
+  if (lower.includes("forgotten favorite")) return t("home.forgottenFavorites")
+  if (lower.includes("album") && lower.includes("you")) return t("home.albumsForYou")
+  if (lower.includes("mix") && lower.includes("you")) return t("home.mixedForYou")
+  if (lower.includes("made for you")) return t("home.madeForYou")
+  if (lower.includes("trending") || lower.includes("chart") || lower.includes("em alta")) return t("home.trending")
+  if (lower.includes("for you") || lower.includes("your")) return t("home.forYou")
+  if (lower.includes("recently played")) return t("home.recentlyPlayed")
+  if (lower.includes("top songs")) return t("search.songs")
+  if (lower.includes("top album")) return t("explore.topAlbums")
+  if (lower.includes("top artist")) return t("explore.topArtists")
+  if (lower.includes("recommend")) return t("home.discover")
+  return title
 }
 
 export default function HomePage() {
   const { t } = useTranslation()
-  const { data: sections, isLoading, error, refetch, isRefetching } = useHomeFeed()
+  const { data: homeData, isLoading: homeLoading, error: homeError, refetch: refetchHome, isRefetching: homeRefetching } = useHomeFeed()
+  const { data: exploreData, refetch: refetchExplore } = useExplore()
   const { play } = usePlayer()
   const queueHistory = usePlayerStore((s) => s.queueHistory)
   const [scrolled, setScrolled] = useState(false)
@@ -288,7 +183,9 @@ export default function HomePage() {
     return () => el.removeEventListener("scroll", onScroll)
   }, [scrollRef])
 
-  const recentSongs = useMemo(() => {
+  const isLoading = homeLoading
+
+  const quickPicks = useMemo(() => {
     const seen = new Set<string>()
     const result: Song[] = []
     for (const s of queueHistory) {
@@ -297,63 +194,79 @@ export default function HomePage() {
         result.push(s)
       }
     }
-    return result.slice(0, 5)
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[result[i], result[j]] = [result[j], result[i]]
+    }
+    return result.slice(0, 20)
   }, [queueHistory])
 
-  const recentAlbums = getAlbumHistory().slice(0, 5)
+  const keepListening = useMemo(() => {
+    const seen = new Set<string>()
+    const result: Song[] = []
+    for (const s of queueHistory) {
+      if (!seen.has(s.videoId)) {
+        seen.add(s.videoId)
+        result.push(s)
+      }
+    }
+    return result.slice(0, 15)
+  }, [queueHistory])
 
-  const topArtists = useMemo(() => extractTopArtists(queueHistory), [queueHistory])
+  const allSections = useMemo(() => {
+    const seenSongIds = new Set<string>()
+    const result: { title: string; songs: Song[]; albums: Album[]; artists: Artist[]; playlists: Playlist[] }[] = []
 
-  const historySongs = useMemo(() => {
-    if (!sections || sections.length === 0) return []
-    const artistNames = new Set(topArtists.map((a) => a.name.toLowerCase()))
-    const results: Song[] = []
-    for (const sec of sections) {
-      for (const item of sec.items) {
-        if ("videoId" in item) {
-          const song = item as Song
-          if (artistNames.has(song.artist?.toLowerCase())) {
-            results.push(song)
-          }
+    if (homeData?.sections) {
+      for (const sec of homeData.sections) {
+        const songs = sec.items.filter((i): i is Song => "videoId" in i && !seenSongIds.has(i.videoId))
+        for (const s of songs) seenSongIds.add(s.videoId)
+        const albums = sec.items.filter((i): i is Album => "browseId" in i && "songs" in i && "coverUrl" in i)
+        const artists = sec.items.filter((i): i is Artist => "browseId" in i && "imageUrl" in i && !("songs" in i))
+        const playlists = sec.items.filter((i): i is Playlist => "browseId" in i && !("songs" in i) && !("imageUrl" in i))
+
+        if (songs.length > 0 || albums.length > 0 || artists.length > 0 || playlists.length > 0) {
+          result.push({ title: sec.title, songs, albums, artists, playlists })
         }
       }
     }
-    return results.slice(0, 10)
-  }, [sections, topArtists])
 
-  const discoverySongs = useMemo(() => {
-    if (!sections || sections.length === 0) return []
-    const historyIds = new Set(queueHistory.map((s) => s.videoId))
-    const artistNames = new Set(topArtists.map((a) => a.name.toLowerCase()))
-    const results: Song[] = []
-    for (const sec of sections) {
-      for (const item of sec.items) {
-        if ("videoId" in item) {
-          const song = item as Song
-          if (!historyIds.has(song.videoId) && !artistNames.has(song.artist?.toLowerCase())) {
-            results.push(song)
-          }
+    if (exploreData?.sections) {
+      const existingTitles = new Set(result.map((r) => r.title.toLowerCase()))
+      for (const sec of exploreData.sections) {
+        if (existingTitles.has(sec.title.toLowerCase())) continue
+        const songs = sec.items.filter((i): i is Song => "videoId" in i && !seenSongIds.has(i.videoId))
+        for (const s of songs) seenSongIds.add(s.videoId)
+        const albums = sec.items.filter((i): i is Album => "browseId" in i && "songs" in i && "coverUrl" in i)
+        const artists = sec.items.filter((i): i is Artist => "browseId" in i && "imageUrl" in i && !("songs" in i))
+        const playlists = sec.items.filter((i): i is Playlist => "browseId" in i && !("songs" in i) && !("imageUrl" in i))
+
+        if (songs.length > 0 || albums.length > 0 || artists.length > 0 || playlists.length > 0) {
+          result.push({ title: sec.title, songs, albums, artists, playlists })
         }
       }
     }
-    return results.slice(0, 10)
-  }, [sections, queueHistory, topArtists])
 
-  function getGreeting() {
-    const hour = new Date().getHours()
-    if (hour < 12) return t("home.greeting")
-    if (hour < 18) return t("home.greeting")
-    return t("home.greeting")
-  }
+    return result
+  }, [homeData, exploreData])
+
+  const tags = useMemo(() => {
+    const homeTags = homeData?.tags || []
+    const exploreTags = exploreData?.moodGenres || []
+    const seen = new Set<string>()
+    const result: MoodGenre[] = []
+    for (const tag of [...homeTags, ...exploreTags]) {
+      if (!seen.has(tag.title)) {
+        seen.add(tag.title)
+        result.push(tag)
+      }
+    }
+    return result
+  }, [homeData, exploreData])
 
   function handleRandomSong() {
-    if (!sections) return
     const allSongs: Song[] = []
-    for (const sec of sections) {
-      for (const item of sec.items) {
-        if ("videoId" in item) allSongs.push(item as Song)
-      }
-    }
+    for (const sec of allSections) allSongs.push(...sec.songs)
     if (allSongs.length === 0) return
     const random = allSongs[Math.floor(Math.random() * allSongs.length)]
     play(random)
@@ -367,49 +280,37 @@ export default function HomePage() {
       className="relative h-full overflow-y-auto"
       ref={scrollRef}
     >
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-end justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-primary">{getGreeting()}</h1>
-            {topArtists.length > 0 && (
-              <p className="mt-1 text-sm text-secondary">
-                {t("home.topArtists")}: {topArtists.slice(0, 3).map((a) => a.name).join(", ")}
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Loading */}
       {isLoading && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5 pt-4">
+          <div className="flex gap-2 overflow-hidden">
+            {[80, 120, 100, 90, 140, 110, 85].map((w, i) => (
+              <Shimmer key={i} height={36} width={`${w}px`} rounded="9999px" />
+            ))}
+          </div>
           <div>
-            <Shimmer height={18} width="30%" />
-            <div className="mt-3 flex gap-4">
-              <Shimmer height={160} width="160px" rounded="16px" />
-              <Shimmer height={160} width="160px" rounded="16px" />
-              <Shimmer height={160} width="160px" rounded="16px" />
+            <Shimmer height={16} width="30%" />
+            <div className="mt-3 flex gap-2">
+              <Shimmer height={56} width="280px" rounded="8px" />
+              <Shimmer height={56} width="280px" rounded="8px" />
             </div>
           </div>
           <div>
-            <Shimmer height={18} width="40%" />
-            <div className="mt-3 flex flex-col gap-1">
-              <Shimmer height={56} rounded="12px" />
-              <Shimmer height={56} rounded="12px" />
-              <Shimmer height={56} rounded="12px" />
+            <Shimmer height={16} width="40%" />
+            <div className="mt-3 flex gap-3">
+              <Shimmer height={160} width="160px" rounded="12px" />
+              <Shimmer height={160} width="160px" rounded="12px" />
+              <Shimmer height={160} width="160px" rounded="12px" />
             </div>
           </div>
         </div>
       )}
 
-      {/* Error */}
-      {error && (
+      {!isLoading && homeError && (
         <div className="mt-12 flex flex-col items-center gap-3">
           <Music size={32} className="text-muted" />
-          <p className="text-sm text-error">{t("home.noResults")}</p>
+          <p className="text-sm text-error">{t("common.failedToLoad")}</p>
           <button
-            onClick={() => refetch()}
+            onClick={() => refetchHome()}
             className="cursor-pointer rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-all duration-150 hover:opacity-90"
           >
             {t("common.retry")}
@@ -417,71 +318,32 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Recently Played - prominent */}
-      {!isLoading && !error && recentSongs.length > 0 && (
-        <div className="mb-8">
-          <h3 className="mb-3 text-lg font-bold text-primary">{t("home.recentlyPlayed")}</h3>
-          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-            {recentSongs.map((song) => (
-              <RecentSongCard key={song.videoId} song={song} />
-            ))}
-          </div>
+      {!isLoading && !homeError && (
+        <div className="pt-4">
+          <TagCarousel tags={tags} />
+
+          {quickPicks.length > 0 && (
+            <SongRow songs={quickPicks} title={t("home.quickPicks")} />
+          )}
+
+          {keepListening.length > 0 && (
+            <SongRow songs={keepListening} title={t("home.continueListening")} />
+          )}
+
+          {allSections.map((sec, idx) => {
+            const title = getLocalizedTitle(sec.title, t)
+            return (
+              <div key={idx}>
+                {sec.songs.length > 0 && <SongRow songs={sec.songs} title={title} />}
+                {sec.albums.length > 0 && <AlbumRow albums={sec.albums} title={title} />}
+                {sec.artists.length > 0 && <ArtistRow artists={sec.artists} title={title} />}
+                {sec.playlists.length > 0 && <PlaylistRow playlists={sec.playlists} title={title} />}
+              </div>
+            )
+          })}
         </div>
       )}
 
-      {/* Recent Albums */}
-      {!isLoading && !error && recentAlbums.length > 0 && (
-        <div className="mb-8">
-          <h3 className="mb-3 text-lg font-bold text-primary">{t("home.recentAlbums")}</h3>
-          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-            {recentAlbums.map((album) => (
-              <RecentAlbumCard key={album.browseId} album={album} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Because You Listened - songs from top artists */}
-      {!isLoading && !error && historySongs.length > 0 && topArtists.length > 0 && (
-        <HorizontalSection
-          title={t("home.becauseYouListened")}
-          subtitle={topArtists[0]?.name}
-        >
-          <div className="flex flex-col gap-1 min-w-0">
-            {historySongs.map((song, i) => (
-              <SongCard key={song.videoId || i} song={song} />
-            ))}
-          </div>
-        </HorizontalSection>
-      )}
-
-      {/* Discover - songs NOT from history */}
-      {!isLoading && !error && discoverySongs.length > 0 && (
-        <HorizontalSection title={t("home.discover")}>
-          <div className="flex flex-col gap-1 min-w-0">
-            {discoverySongs.map((song, i) => (
-              <SongCard key={song.videoId || i} song={song} />
-            ))}
-          </div>
-        </HorizontalSection>
-      )}
-
-      {/* Feed sections */}
-      {sections && sections.length > 0
-        ? sections.map((section, idx) => (
-            <HorizontalSection key={idx} title={section.title}>
-              <SectionContent items={section.items} />
-            </HorizontalSection>
-          ))
-        : !isLoading && !error ? (
-            <div className="mt-12 flex flex-col items-center gap-2">
-              <Music size={32} className="text-muted" />
-              <p className="text-sm text-muted">{t("home.noResults")}</p>
-            </div>
-          )
-        : null}
-
-      {/* FABs */}
       <div className="fixed bottom-24 right-6 z-30 flex flex-col gap-2">
         <AnimatePresence>
           {scrolled && (
@@ -490,11 +352,11 @@ export default function HomePage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0, opacity: 0 }}
               transition={{ duration: 0.15 }}
-              onClick={() => refetch()}
+              onClick={() => { refetchHome(); refetchExplore(); }}
               className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-bg-surface shadow-lg transition-colors hover:bg-bg-hover"
               title={t("home.refresh")}
             >
-              <RefreshCw size={16} className={isRefetching ? "animate-spin text-accent" : "text-secondary"} />
+              <RefreshCw size={16} className={homeRefetching ? "animate-spin text-accent" : "text-secondary"} />
             </motion.button>
           )}
         </AnimatePresence>

@@ -13,8 +13,8 @@ export default function SearchHistory({ history, onSelect, onClear }: SearchHist
   if (history.length === 0) return null
 
   return (
-    <div className="mt-4">
-      <div className="mb-2 flex items-center justify-between">
+    <div className="flex flex-col">
+      <div className="flex items-center justify-between px-3 py-2">
         <span className="text-xs font-medium text-secondary">
           {t("search.recentSearches")}
         </span>
@@ -25,17 +25,19 @@ export default function SearchHistory({ history, onSelect, onClear }: SearchHist
           {t("search.clearHistory")}
         </button>
       </div>
-      <div className="flex flex-col gap-0.5">
-        {history.map((h) => (
-          <button
-            key={h}
-            onClick={() => onSelect(h)}
-            className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-secondary transition-all duration-150 hover:bg-bg-hover"
-          >
-            <Clock size={13} />
-            {h}
-          </button>
-        ))}
+      <div className="max-h-56 overflow-y-auto px-1.5 pb-1.5">
+        <div className="flex flex-col gap-0.5">
+          {history.map((h) => (
+            <button
+              key={h}
+              onClick={() => onSelect(h)}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-secondary transition-colors duration-100 hover:bg-bg-hover"
+            >
+              <Clock size={13} />
+              {h}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )

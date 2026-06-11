@@ -1,11 +1,13 @@
 import { Search, X } from "lucide-react"
 import { useRef } from "react"
+import { useTranslation } from "react-i18next"
 
 interface SearchInputProps {
   value: string
   onChange: (value: string) => void
   onClear: () => void
   onEnter?: () => void
+  onFocus?: () => void
   placeholder?: string
 }
 
@@ -14,8 +16,11 @@ export default function SearchInput({
   onChange,
   onClear,
   onEnter,
-  placeholder = "Search songs, albums, artists...",
+  onFocus,
+  placeholder,
 }: SearchInputProps) {
+  const { t } = useTranslation()
+  const resolvedPlaceholder = placeholder ?? t("search.placeholder")
   const inputRef = useRef<HTMLInputElement>(null)
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -33,7 +38,8 @@ export default function SearchInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
+        onFocus={onFocus}
+        placeholder={resolvedPlaceholder}
         className="w-full bg-transparent text-sm text-primary outline-none"
         autoFocus
       />

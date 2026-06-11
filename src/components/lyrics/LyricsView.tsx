@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useLyrics } from "../../hooks/useLyrics"
 import { usePlayerStore } from "../../stores/playerStore"
-import { Music } from "lucide-react"
+import { Music, Loader2 } from "lucide-react"
 
 export default function LyricsView() {
   const { t } = useTranslation()
@@ -22,9 +22,7 @@ export default function LyricsView() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted">
-          {t("common.loading")}
-        </p>
+        <Loader2 size={24} className="animate-spin text-muted" />
       </div>
     )
   }

@@ -5,8 +5,13 @@ mod ytdlp;
 use api::innertube::*;
 
 #[tauri::command]
-async fn cmd_get_home_feed() -> Result<Vec<HomeSection>, String> {
+async fn cmd_get_home_feed() -> Result<HomeFeedData, String> {
     fetch_home_feed().await
+}
+
+#[tauri::command]
+async fn cmd_get_explore() -> Result<ExploreData, String> {
+    fetch_explore().await
 }
 
 #[tauri::command]
@@ -32,6 +37,11 @@ async fn cmd_get_album(browse_id: String) -> Result<AlbumData, String> {
 #[tauri::command]
 async fn cmd_get_artist(browse_id: String) -> Result<ArtistData, String> {
     get_artist(&browse_id).await
+}
+
+#[tauri::command]
+async fn cmd_browse_category(browse_id: String, params: Option<String>) -> Result<Vec<HomeSection>, String> {
+    browse_category(&browse_id, params.as_deref()).await
 }
 
 #[tauri::command]
@@ -80,11 +90,13 @@ pub fn run() {
         .register_asynchronous_uri_scheme_protocol("nekotune", proxy::handle_protocol_request)
         .invoke_handler(tauri::generate_handler![
             cmd_get_home_feed,
+            cmd_get_explore,
             cmd_search_music,
             cmd_get_search_suggestions,
             cmd_get_playlist,
             cmd_get_album,
             cmd_get_artist,
+            cmd_browse_category,
             cmd_get_stream_url,
             cmd_register_stream_url,
             cmd_get_lyrics,

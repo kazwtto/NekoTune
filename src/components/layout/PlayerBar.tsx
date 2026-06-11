@@ -12,8 +12,8 @@ import {
 import { usePlayer } from "../../hooks/usePlayer"
 import { useUiStore } from "../../stores/uiStore"
 import { useLibraryStore } from "../../stores/libraryStore"
-import { formatTime } from "../../utils/format"
 import VolumeSlider from "../player/VolumeSlider"
+import ProgressBar from "../player/ProgressBar"
 import { proxyUrl, highResThumb } from "../../services/proxy"
 
 export default function PlayerBar() {
@@ -21,13 +21,10 @@ export default function PlayerBar() {
     currentSong,
     isPlaying,
     isLoading,
-    progress,
-    duration,
     pause,
     resume,
     next,
     previous,
-    seek,
     shuffle,
     repeat,
     toggleShuffle,
@@ -39,7 +36,6 @@ export default function PlayerBar() {
   if (!currentSong) return null
 
   const isFav = favorites.includes(currentSong.videoId)
-  const pct = duration > 0 ? (progress / duration) * 100 : 0
 
   return (
     <div className="flex h-[72px] items-center gap-4 border-t border-border bg-player px-4">
@@ -119,28 +115,7 @@ export default function PlayerBar() {
             <Repeat size={14} />
           </button>
         </div>
-        <div className="flex w-full items-center gap-2">
-          <span className="min-w-8 text-right text-xs tabular-nums text-muted">
-            {formatTime(progress)}
-          </span>
-          <div
-            className="group relative h-1 flex-1 cursor-pointer rounded-full bg-elevated"
-            onClick={(e) => {
-              if (duration <= 0) return
-              const rect = e.currentTarget.getBoundingClientRect()
-              const x = (e.clientX - rect.left) / rect.width
-              seek(x * duration)
-            }}
-          >
-            <div
-              className="h-full rounded-full bg-accent transition-all duration-100"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-          <span className="min-w-8 text-xs tabular-nums text-muted">
-            {formatTime(duration)}
-          </span>
-        </div>
+        <ProgressBar />
       </div>
 
       <div className="flex w-36 items-center justify-end gap-3">

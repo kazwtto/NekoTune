@@ -150,6 +150,29 @@ pub struct HomeSection {
     pub items: Vec<HomeItem>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MoodGenre {
+    pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub browse_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub params: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExploreData {
+    pub sections: Vec<HomeSection>,
+    pub mood_genres: Vec<MoodGenre>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct HomeFeedData {
+    pub sections: Vec<HomeSection>,
+    pub tags: Vec<MoodGenre>,
+}
+
 fn extract_thumbnails(thumbnails: &serde_json::Value) -> Option<String> {
     thumbnails
         .as_array()
@@ -435,7 +458,78 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
     }
 }
 
-pub async fn fetch_home_feed() -> Result<Vec<HomeSection>, String> {
+fn extract_carousel_title(carousel: &serde_json::Value) -> String {
+    let header = carousel.get("header");
+    if let Some(h) = header {
+        if let Some(title) = h.get("musicCarouselShelfBasicHeaderRenderer").and_then(|h| h.get("title")).and_then(get_text_from_runs) {
+            return title;
+        }
+        if let Some(title) = h.get("musicVisualHeaderRenderer").and_then(|h| h.get("title")).and_then(get_text_from_runs) {
+            return title;
+        }
+        if let Some(title) = h.get("musicCarouselShelfActiveMusicCarouselSectionHeaderRenderer").and_then(|h| h.get("title")).and_then(get_text_from_runs) {
+            return title;
+        }
+    }
+    "Recommended".to_string()
+}
+
+fn parse_nav_button(item: &serde_json::Value) -> Option<MoodGenre> {
+    let nav_button = item.get("musicNavigationButtonRenderer")?;
+    let chip_title = nav_button.get("buttonText").and_then(get_text_from_runs).unwrap_or_default();
+    let color = nav_button.get("solid").and_then(|s| s.get("leftStripeColor"))
+        .and_then(|c| c.as_i64())
+        .map(|c| format!("#{:06X}", c & 0x00FF_FFFF));
+    let browse_id = nav_button.get("clickCommand")
+        .and_then(|c| c.get("browseEndpoint"))
+        .and_then(|b| b.get("browseId"))
+        .and_then(|b| b.as_str())
+        .map(|s| s.to_string());
+    let params = nav_button.get("clickCommand")
+        .and_then(|c| c.get("browseEndpoint"))
+        .and_then(|b| b.get("params"))
+        .and_then(|p| p.as_str())
+        .map(|s| s.to_string());
+    if chip_title.is_empty() {
+        return None;
+    }
+    Some(MoodGenre { title: chip_title, color, browse_id, params })
+}
+
+fn parse_music_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
+    parse_two_row_item(item.get("musicTwoRowItemRenderer")?)
+}
+
+fn parse_music_responsive_list_item(item: &serde_json::Value) -> Option<HomeItem> {
+    let list_item = item.get("musicResponsiveListItemRenderer")?;
+    let song = parse_song_from_music_item(list_item)?;
+    Some(HomeItem {
+        item_type: "song".to_string(),
+        id: Some(song.id.clone()),
+        video_id: Some(song.video_id),
+        browse_id: None,
+        title: song.title,
+        subtitle: Some(song.artist),
+        cover_url: song.album_art_url,
+        duration: Some(song.duration),
+    })
+}
+
+fn parse_carousel_items(carousel: &serde_json::Value) -> Vec<HomeItem> {
+    let mut items = Vec::new();
+    if let Some(contents) = carousel.get("contents").and_then(|c| c.as_array()) {
+        for content_item in contents {
+            if let Some(item) = parse_music_two_row_item(content_item) {
+                items.push(item);
+            } else if let Some(item) = parse_music_responsive_list_item(content_item) {
+                items.push(item);
+            }
+        }
+    }
+    items
+}
+
+pub async fn fetch_home_feed() -> Result<HomeFeedData, String> {
     let body = serde_json::json!({
         "context": get_browse_context(),
         "browseId": "FEmusic_home"
@@ -453,6 +547,154 @@ pub async fn fetch_home_feed() -> Result<Vec<HomeSection>, String> {
         .map_err(|e| format!("Parse failed: {}", e))?;
 
     let mut sections = Vec::new();
+    let mut tags = Vec::new();
+
+    let contents = data
+        .get("contents")
+        .and_then(|c| c.get("singleColumnBrowseResultsRenderer"))
+        .and_then(|r| r.get("tabs"))
+        .and_then(|t| t.as_array())
+        .and_then(|t| t.first())
+        .and_then(|t| t.get("tabRenderer"))
+        .and_then(|t| t.get("content"))
+        .and_then(|c| c.get("sectionListRenderer"))
+        .and_then(|s| s.get("contents"))
+        .and_then(|c| c.as_array());
+
+    if let Some(contents) = contents {
+        for section in contents {
+            // Tag carousel: gridRenderer with musicNavigationButtonRenderer items
+            if let Some(grid) = section.get("gridRenderer") {
+                if let Some(grid_items) = grid.get("items").and_then(|i| i.as_array()) {
+                    for item in grid_items {
+                        if let Some(tag) = parse_nav_button(item) {
+                            tags.push(tag);
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // musicShelfRenderer (song shelf)
+            if let Some(shelf) = section.get("musicShelfRenderer") {
+                let title = shelf
+                    .get("title")
+                    .and_then(get_text_from_runs)
+                    .unwrap_or_else(|| "Recommended".to_string());
+                let mut items = Vec::new();
+                if let Some(shelf_contents) = shelf.get("contents").and_then(|c| c.as_array()) {
+                    for content_item in shelf_contents {
+                        if let Some(item) = parse_music_responsive_list_item(content_item) {
+                            items.push(item);
+                        }
+                    }
+                }
+                if !items.is_empty() {
+                    sections.push(HomeSection { title, items });
+                }
+                continue;
+            }
+
+            // musicCarouselShelfRenderer
+            if let Some(carousel) = section.get("musicCarouselShelfRenderer") {
+                let title = extract_carousel_title(carousel);
+                let items = parse_carousel_items(carousel);
+                if !items.is_empty() {
+                    sections.push(HomeSection { title, items });
+                }
+                continue;
+            }
+
+            // musicPlaylistShelfRenderer
+            if let Some(shelf) = section.get("musicPlaylistShelfRenderer") {
+                let title = shelf
+                    .get("title")
+                    .and_then(get_text_from_runs)
+                    .unwrap_or_else(|| "Playlist".to_string());
+                let mut items = Vec::new();
+                if let Some(shelf_contents) = shelf.get("contents").and_then(|c| c.as_array()) {
+                    for content_item in shelf_contents {
+                        if let Some(item) = parse_music_two_row_item(content_item) {
+                            items.push(item);
+                        } else if let Some(item) = parse_music_responsive_list_item(content_item) {
+                            items.push(item);
+                        }
+                    }
+                }
+                if !items.is_empty() {
+                    sections.push(HomeSection { title, items });
+                }
+                continue;
+            }
+
+            // itemSectionRenderer: might contain another carousel
+            if let Some(item_section) = section.get("itemSectionRenderer") {
+                if let Some(inner_contents) = item_section.get("contents").and_then(|c| c.as_array()) {
+                    for inner in inner_contents {
+                        if let Some(carousel) = inner.get("musicCarouselShelfRenderer") {
+                            let title = extract_carousel_title(carousel);
+                            let items = parse_carousel_items(carousel);
+                            if !items.is_empty() {
+                                sections.push(HomeSection { title, items });
+                            }
+                        }
+                        if let Some(shelf) = inner.get("musicShelfRenderer") {
+                            let title = shelf.get("title").and_then(get_text_from_runs)
+                                .unwrap_or_else(|| "Recommended".to_string());
+                            let mut items = Vec::new();
+                            if let Some(shelf_contents) = shelf.get("contents").and_then(|c| c.as_array()) {
+                                for content_item in shelf_contents {
+                                    if let Some(item) = parse_music_responsive_list_item(content_item) {
+                                        items.push(item);
+                                    }
+                                }
+                            }
+                            if !items.is_empty() {
+                                sections.push(HomeSection { title, items });
+                            }
+                        }
+                        if let Some(grid) = inner.get("gridRenderer") {
+                            if let Some(grid_items) = grid.get("items").and_then(|i| i.as_array()) {
+                                for item in grid_items {
+                                    if let Some(tag) = parse_nav_button(item) {
+                                        tags.push(tag);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    println!("[home] sections={}, tags={}", sections.len(), tags.len());
+    for t in &tags {
+        println!("[home] tag: {}", t.title);
+    }
+
+    Ok(HomeFeedData { sections, tags })
+}
+
+pub async fn fetch_explore() -> Result<ExploreData, String> {
+    let body = serde_json::json!({
+        "context": get_browse_context(),
+        "browseId": "FEmusic_explore"
+    });
+
+    let resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/browse"))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    let data: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Parse failed: {}", e))?;
+
+    let mut sections = Vec::new();
+    let mut mood_genres = Vec::new();
 
     let contents = data
         .get("contents")
@@ -469,31 +711,299 @@ pub async fn fetch_home_feed() -> Result<Vec<HomeSection>, String> {
     if let Some(contents) = contents {
         for section in contents {
             if let Some(carousel) = section.get("musicCarouselShelfRenderer") {
-                let title = carousel
-                    .get("header")
-                    .and_then(|h| h.get("musicCarouselShelfBasicHeaderRenderer"))
-                    .and_then(|h| h.get("title"))
-                    .and_then(get_text_from_runs)
-                    .unwrap_or_else(|| "Recommended".to_string());
+                let title = extract_carousel_title(carousel);
 
+                // Check if this carousel is the mood/genre section
+                let is_mood_section = carousel.get("header")
+                    .and_then(|h| h.get("moreContentButton"))
+                    .and_then(|b| b.get("buttonRenderer"))
+                    .and_then(|b| b.get("navigationEndpoint"))
+                    .and_then(|n| n.get("browseEndpoint"))
+                    .and_then(|b| b.get("browseId"))
+                    .and_then(|b| b.as_str())
+                    == Some("FEmusic_moods_and_genres");
+
+                if is_mood_section {
+                    // Parse musicNavigationButtonRenderer items for mood/genre chips
+                    if let Some(contents) = carousel.get("contents").and_then(|c| c.as_array()) {
+                        for content_item in contents {
+                            if let Some(nav_button) = content_item.get("musicNavigationButtonRenderer") {
+                                let chip_title = nav_button
+                                    .get("buttonText")
+                                    .and_then(get_text_from_runs)
+                                    .unwrap_or_default();
+
+                                // Extract leftStripeColor (ARGB as i64)
+                                let color = nav_button
+                                    .get("solid")
+                                    .and_then(|s| s.get("leftStripeColor"))
+                                    .and_then(|c| c.as_i64())
+                                    .map(|c| format!("#{:06X}", c & 0x00FF_FFFF));
+
+                                let browse_id = nav_button
+                                    .get("clickCommand")
+                                    .and_then(|c| c.get("browseEndpoint"))
+                                    .and_then(|b| b.get("browseId"))
+                                    .and_then(|b| b.as_str())
+                                    .map(|s| s.to_string());
+
+                                let params = nav_button
+                                    .get("clickCommand")
+                                    .and_then(|c| c.get("browseEndpoint"))
+                                    .and_then(|b| b.get("params"))
+                                    .and_then(|p| p.as_str())
+                                    .map(|s| s.to_string());
+
+                                if !chip_title.is_empty() {
+                                    mood_genres.push(MoodGenre {
+                                        title: chip_title,
+                                        color,
+                                        browse_id,
+                                        params,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Regular content section (albums, songs, playlists)
+                    let mut items = Vec::new();
+                    if let Some(contents) = carousel.get("contents").and_then(|c| c.as_array()) {
+                        for content_item in contents {
+                            if let Some(two_row) = content_item.get("musicTwoRowItemRenderer") {
+                                if let Some(item) = parse_two_row_item(two_row) {
+                                    items.push(item);
+                                }
+                            }
+                            if let Some(list_item) = content_item.get("musicResponsiveListItemRenderer") {
+                                if let Some(song) = parse_song_from_music_item(list_item) {
+                                    items.push(HomeItem {
+                                        item_type: "song".to_string(),
+                                        id: Some(song.id.clone()),
+                                        video_id: Some(song.video_id),
+                                        browse_id: None,
+                                        title: song.title,
+                                        subtitle: Some(song.artist),
+                                        cover_url: song.album_art_url,
+                                        duration: Some(song.duration),
+                                    });
+                                }
+                            }
+                            if let Some(pl) = content_item.get("playlistWithTwoRowItemRenderer") {
+                                if let Some(item) = parse_two_row_item(pl) {
+                                    items.push(item);
+                                }
+                            }
+                        }
+                    }
+                    if !items.is_empty() {
+                        sections.push(HomeSection { title, items });
+                    }
+                }
+            }
+
+            // Grid renderer — mood/genre buttons or regular content
+            if let Some(grid) = section.get("gridRenderer") {
+                let mut grid_items = Vec::new();
+                let mut is_mood_grid = false;
+
+                if let Some(items) = grid.get("items").and_then(|i| i.as_array()) {
+                    for item in items {
+                        if let Some(nav_button) = item.get("musicNavigationButtonRenderer") {
+                            is_mood_grid = true;
+                            let chip_title = nav_button
+                                .get("buttonText")
+                                .and_then(get_text_from_runs)
+                                .unwrap_or_default();
+
+                            let color = nav_button
+                                .get("solid")
+                                .and_then(|s| s.get("leftStripeColor"))
+                                .and_then(|c| c.as_i64())
+                                .map(|c| format!("#{:06X}", c & 0x00FF_FFFF));
+
+                            let browse_id = nav_button
+                                .get("clickCommand")
+                                .and_then(|c| c.get("browseEndpoint"))
+                                .and_then(|b| b.get("browseId"))
+                                .and_then(|b| b.as_str())
+                                .map(|s| s.to_string());
+
+                            let params = nav_button
+                                .get("clickCommand")
+                                .and_then(|c| c.get("browseEndpoint"))
+                                .and_then(|b| b.get("params"))
+                                .and_then(|p| p.as_str())
+                                .map(|s| s.to_string());
+
+                            if !chip_title.is_empty() {
+                                mood_genres.push(MoodGenre {
+                                    title: chip_title,
+                                    color,
+                                    browse_id,
+                                    params,
+                                });
+                            }
+                        } else if let Some(two_row) = item.get("musicTwoRowItemRenderer") {
+                            if let Some(parsed) = parse_two_row_item(two_row) {
+                                grid_items.push(parsed);
+                            }
+                        } else if let Some(pl) = item.get("playlistWithTwoRowItemRenderer") {
+                            if let Some(parsed) = parse_two_row_item(pl) {
+                                grid_items.push(parsed);
+                            }
+                        } else if let Some(list_item) = item.get("musicResponsiveListItemRenderer") {
+                            if let Some(song) = parse_song_from_music_item(list_item) {
+                                grid_items.push(HomeItem {
+                                    item_type: "song".to_string(),
+                                    id: Some(song.id.clone()),
+                                    video_id: Some(song.video_id),
+                                    browse_id: None,
+                                    title: song.title,
+                                    subtitle: Some(song.artist),
+                                    cover_url: song.album_art_url,
+                                    duration: Some(song.duration),
+                                });
+                            }
+                        }
+                    }
+                }
+
+                if !is_mood_grid && !grid_items.is_empty() {
+                    let grid_title = grid
+                        .get("header")
+                        .and_then(|h| h.get("gridHeaderRenderer"))
+                        .and_then(|h| h.get("title"))
+                        .and_then(get_text_from_runs)
+                        .unwrap_or_else(|| "Recommended".to_string());
+                    sections.push(HomeSection {
+                        title: grid_title,
+                        items: grid_items,
+                    });
+                }
+            }
+
+            // shelfRenderer — songs list
+            if let Some(shelf) = section.get("musicShelfRenderer") {
+                let shelf_title = shelf
+                    .get("title")
+                    .and_then(get_text_from_runs)
+                    .unwrap_or_default();
                 let mut items = Vec::new();
-                if let Some(contents) = carousel.get("contents").and_then(|c| c.as_array()) {
+                if let Some(contents) = shelf.get("contents").and_then(|c| c.as_array()) {
                     for content_item in contents {
-                        if let Some(two_row) = content_item.get("musicTwoRowItemRenderer") {
-                            if let Some(item) = parse_two_row_item(two_row) {
-                                items.push(item);
+                        if let Some(list_item) = content_item.get("musicResponsiveListItemRenderer") {
+                            if let Some(song) = parse_song_from_music_item(list_item) {
+                                items.push(HomeItem {
+                                    item_type: "song".to_string(),
+                                    id: Some(song.id.clone()),
+                                    video_id: Some(song.video_id),
+                                    browse_id: None,
+                                    title: song.title,
+                                    subtitle: Some(song.artist),
+                                    cover_url: song.album_art_url,
+                                    duration: Some(song.duration),
+                                });
                             }
                         }
                     }
                 }
                 if !items.is_empty() {
-                    sections.push(HomeSection { title, items });
+                    sections.push(HomeSection {
+                        title: shelf_title,
+                        items,
+                    });
+                }
+            }
+            // itemSectionRenderer — wraps other renderers
+            if let Some(section_inner) = section.get("itemSectionRenderer") {
+                if let Some(contents) = section_inner.get("contents").and_then(|c| c.as_array()) {
+                    for inner in contents {
+                        if let Some(carousel) = inner.get("musicCarouselShelfRenderer") {
+                            let title = extract_carousel_title(carousel);
+                            let mut items = Vec::new();
+                            if let Some(c_items) = carousel.get("contents").and_then(|c| c.as_array()) {
+                                for content_item in c_items {
+                                    if let Some(two_row) = content_item.get("musicTwoRowItemRenderer") {
+                                        if let Some(item) = parse_two_row_item(two_row) {
+                                            items.push(item);
+                                        }
+                                    }
+                                    if let Some(pl) = content_item.get("playlistWithTwoRowItemRenderer") {
+                                        if let Some(item) = parse_two_row_item(pl) {
+                                            items.push(item);
+                                        }
+                                    }
+                                    if let Some(list_item) = content_item.get("musicResponsiveListItemRenderer") {
+                                        if let Some(song) = parse_song_from_music_item(list_item) {
+                                            items.push(HomeItem {
+                                                item_type: "song".to_string(),
+                                                id: Some(song.id.clone()),
+                                                video_id: Some(song.video_id),
+                                                browse_id: None,
+                                                title: song.title,
+                                                subtitle: Some(song.artist),
+                                                cover_url: song.album_art_url,
+                                                duration: Some(song.duration),
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                            if !items.is_empty() {
+                                sections.push(HomeSection { title, items });
+                            }
+                        }
+                        if let Some(grid) = inner.get("gridRenderer") {
+                            let grid_title = grid
+                                .get("header")
+                                .and_then(|h| h.get("gridHeaderRenderer"))
+                                .and_then(|h| h.get("title"))
+                                .and_then(get_text_from_runs)
+                                .unwrap_or_default();
+                            let mut items = Vec::new();
+                            if let Some(g_items) = grid.get("items").and_then(|i| i.as_array()) {
+                                for g_item in g_items {
+                                    if let Some(two_row) = g_item.get("musicTwoRowItemRenderer") {
+                                        if let Some(parsed) = parse_two_row_item(two_row) {
+                                            items.push(parsed);
+                                        }
+                                    }
+                                    if let Some(pl) = g_item.get("playlistWithTwoRowItemRenderer") {
+                                        if let Some(parsed) = parse_two_row_item(pl) {
+                                            items.push(parsed);
+                                        }
+                                    }
+                                    if let Some(list_item) = g_item.get("musicResponsiveListItemRenderer") {
+                                        if let Some(song) = parse_song_from_music_item(list_item) {
+                                            items.push(HomeItem {
+                                                item_type: "song".to_string(),
+                                                id: Some(song.id.clone()),
+                                                video_id: Some(song.video_id),
+                                                browse_id: None,
+                                                title: song.title,
+                                                subtitle: Some(song.artist),
+                                                cover_url: song.album_art_url,
+                                                duration: Some(song.duration),
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                            if !items.is_empty() {
+                                sections.push(HomeSection {
+                                    title: if grid_title.is_empty() { "Recommended".to_string() } else { grid_title },
+                                    items,
+                                });
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    Ok(sections)
+    Ok(ExploreData { sections, mood_genres })
 }
 
 pub async fn search_music(query: &str) -> Result<SearchResults, String> {
@@ -1158,6 +1668,106 @@ pub async fn get_artist(browse_id: &str) -> Result<ArtistData, String> {
         songs,
         albums,
     })
+}
+
+pub async fn browse_category(browse_id: &str, params: Option<&str>) -> Result<Vec<HomeSection>, String> {
+    let mut body = serde_json::json!({
+        "context": get_browse_context(),
+        "browseId": browse_id
+    });
+    if let Some(p) = params {
+        body["params"] = serde_json::json!(p);
+    }
+
+    let resp = yt_client(CLIENT.post("https://music.youtube.com/youtubei/v1/browse"))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    let data: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Parse failed: {}", e))?;
+
+    let mut sections = Vec::new();
+
+    let contents = data
+        .get("contents")
+        .and_then(|c| c.get("singleColumnBrowseResultsRenderer"))
+        .and_then(|r| r.get("tabs"))
+        .and_then(|t| t.as_array())
+        .and_then(|t| t.first())
+        .and_then(|t| t.get("tabRenderer"))
+        .and_then(|t| t.get("content"))
+        .and_then(|c| c.get("sectionListRenderer"))
+        .and_then(|s| s.get("contents"))
+        .and_then(|c| c.as_array())
+        .or_else(|| {
+            data.get("contents")
+                .and_then(|c| c.get("twoColumnBrowseResultsRenderer"))
+                .and_then(|c| c.get("secondaryContents"))
+                .and_then(|s| s.get("sectionListRenderer"))
+                .and_then(|s| s.get("contents"))
+                .and_then(|c| c.as_array())
+        });
+
+    if let Some(contents) = contents {
+        for section in contents {
+            if let Some(carousel) = section.get("musicCarouselShelfRenderer") {
+                let title = extract_carousel_title(carousel);
+                let items = parse_carousel_items(carousel);
+                if !items.is_empty() {
+                    sections.push(HomeSection { title, items });
+                }
+            }
+            if let Some(shelf) = section.get("musicShelfRenderer") {
+                let title = shelf.get("title").and_then(get_text_from_runs)
+                    .unwrap_or_else(|| "Recommended".to_string());
+                let mut items = Vec::new();
+                if let Some(shelf_contents) = shelf.get("contents").and_then(|c| c.as_array()) {
+                    for content_item in shelf_contents {
+                        if let Some(item) = parse_music_responsive_list_item(content_item) {
+                            items.push(item);
+                        }
+                    }
+                }
+                if !items.is_empty() {
+                    sections.push(HomeSection { title, items });
+                }
+            }
+            if let Some(item_section) = section.get("itemSectionRenderer") {
+                if let Some(inner_contents) = item_section.get("contents").and_then(|c| c.as_array()) {
+                    for inner in inner_contents {
+                        if let Some(carousel) = inner.get("musicCarouselShelfRenderer") {
+                            let title = extract_carousel_title(carousel);
+                            let items = parse_carousel_items(carousel);
+                            if !items.is_empty() {
+                                sections.push(HomeSection { title, items });
+                            }
+                        }
+                        if let Some(shelf) = inner.get("musicShelfRenderer") {
+                            let title = shelf.get("title").and_then(get_text_from_runs)
+                                .unwrap_or_else(|| "Recommended".to_string());
+                            let mut items = Vec::new();
+                            if let Some(shelf_contents) = shelf.get("contents").and_then(|c| c.as_array()) {
+                                for content_item in shelf_contents {
+                                    if let Some(item) = parse_music_responsive_list_item(content_item) {
+                                        items.push(item);
+                                    }
+                                }
+                            }
+                            if !items.is_empty() {
+                                sections.push(HomeSection { title, items });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(sections)
 }
 
 pub async fn get_lyrics(video_id: &str) -> Result<Option<String>, String> {

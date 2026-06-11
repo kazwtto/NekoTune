@@ -11,11 +11,20 @@ function restoreOnce() {
   restored = true
 
   const saved = loadPlayerState()
-  if (saved && saved.currentSong) {
+  if (!saved) return
+
+  // Always restore queueHistory
+  if (saved.queueHistory && saved.queueHistory.length > 0) {
+    usePlayerStore.setState({ queueHistory: saved.queueHistory })
+  }
+
+  // Restore full player state if there was a song playing
+  if (saved.currentSong) {
     usePlayerStore.setState({
       currentSong: saved.currentSong,
       queue: saved.queue,
       queueIndex: saved.queueIndex,
+      queueHistory: saved.queueHistory || [],
       volume: saved.volume,
       shuffle: saved.shuffle,
       repeat: saved.repeat,
@@ -40,21 +49,31 @@ export function usePlayer() {
   }, [])
 
   const play = useCallback((song: Song) => {
-    usePlayerStore.setState({
-      currentSong: song,
-      isPlaying: true,
-      isLoading: true,
-      progress: 0,
-      duration: song.duration || 0,
-    })
     const state = usePlayerStore.getState()
+    const newHistory = state.currentSong
+      ? [...state.queueHistory, state.currentSong].slice(-50)
+      : state.queueHistory
     const existingIndex = state.queue.findIndex((s) => s.videoId === song.videoId)
     if (existingIndex >= 0) {
-      usePlayerStore.setState({ queueIndex: existingIndex })
+      usePlayerStore.setState({
+        currentSong: song,
+        queueIndex: existingIndex,
+        queueHistory: newHistory,
+        isPlaying: true,
+        isLoading: true,
+        progress: 0,
+        duration: song.duration || 0,
+      })
     } else {
       usePlayerStore.setState({
+        currentSong: song,
         queue: [...state.queue, song],
         queueIndex: state.queue.length,
+        queueHistory: newHistory,
+        isPlaying: true,
+        isLoading: true,
+        progress: 0,
+        duration: song.duration || 0,
       })
     }
     playerService.loadAndPlay(song).catch((err) => {
@@ -64,12 +83,10 @@ export function usePlayer() {
   }, [])
 
   const pause = useCallback(() => {
-    usePlayerStore.setState({ isPlaying: false })
     playerService.pause()
   }, [])
 
   const resume = useCallback(() => {
-    usePlayerStore.setState({ isPlaying: true })
     playerService.play()
   }, [])
 

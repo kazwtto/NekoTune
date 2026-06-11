@@ -13,7 +13,7 @@ export default function Shimmer({ width = "100%", height = 12, rounded = "6px", 
           key={i}
           className="shimmer"
           style={{
-            width: typeof width === "number" ? width : width,
+            width,
             height,
             borderRadius: rounded,
             marginBottom: count > 1 ? 8 : 0,

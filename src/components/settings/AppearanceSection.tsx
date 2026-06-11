@@ -3,21 +3,21 @@ import type { ThemeMode } from "../../types/settings"
 import { useTranslation } from "react-i18next"
 import SettingsCard from "./SettingsCard"
 
-const themes: { value: ThemeMode; label: string; preview: string; ring: string }[] = [
-  { value: "dark", label: "Escuro", preview: "#161b22", ring: "rgba(255,255,255,0.1)" },
-  { value: "light", label: "Claro", preview: "#f1f0f5", ring: "rgba(0,0,0,0.1)" },
-  { value: "pure-black", label: "Preto Puro", preview: "#000000", ring: "rgba(255,255,255,0.15)" },
+const themes: { value: ThemeMode; labelKey: string; preview: string; ring: string }[] = [
+  { value: "dark", labelKey: "settings.dark", preview: "#161b22", ring: "rgba(255,255,255,0.1)" },
+  { value: "light", labelKey: "settings.light", preview: "#f1f0f5", ring: "rgba(0,0,0,0.1)" },
+  { value: "pure-black", labelKey: "settings.pureBlack", preview: "#000000", ring: "rgba(255,255,255,0.15)" },
 ]
 
 const accentColors = [
-  { value: "#7c6aef", label: "Roxo" },
-  { value: "#f97316", label: "Laranja" },
-  { value: "#c084fc", label: "Lilás" },
-  { value: "#22c55e", label: "Verde" },
-  { value: "#3b82f6", label: "Azul" },
-  { value: "#ec4899", label: "Rosa" },
-  { value: "#eab308", label: "Amarelo" },
-  { value: "#ef4444", label: "Vermelho" },
+  { value: "#7c6aef", labelKey: "settings.colorPurple" },
+  { value: "#f97316", labelKey: "settings.colorOrange" },
+  { value: "#c084fc", labelKey: "settings.colorLilac" },
+  { value: "#22c55e", labelKey: "settings.colorGreen" },
+  { value: "#3b82f6", labelKey: "settings.colorBlue" },
+  { value: "#ec4899", labelKey: "settings.colorPink" },
+  { value: "#eab308", labelKey: "settings.colorYellow" },
+  { value: "#ef4444", labelKey: "settings.colorRed" },
 ]
 
 export default function AppearanceSection() {
@@ -54,7 +54,7 @@ export default function AppearanceSection() {
                   )}
                 </div>
                 <span className={`text-xs font-medium ${isActive ? "text-accent" : "text-secondary"}`}>
-                  {th.label}
+                  {t(th.labelKey)}
                 </span>
               </button>
             )
@@ -71,7 +71,7 @@ export default function AppearanceSection() {
                 key={c.value}
                 onClick={() => updateSettings({ accentColor: c.value })}
                 className="group flex cursor-pointer flex-col items-center gap-1.5"
-                title={c.label}
+                title={t(c.labelKey)}
               >
                 <div
                   className={`relative h-9 w-9 rounded-full transition-all duration-150 ${
@@ -91,7 +91,7 @@ export default function AppearanceSection() {
                   )}
                 </div>
                 <span className={`text-[10px] ${isActive ? "text-primary font-medium" : "text-muted"}`}>
-                  {c.label}
+                  {t(c.labelKey)}
                 </span>
               </button>
             )

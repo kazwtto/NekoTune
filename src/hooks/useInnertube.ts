@@ -1,10 +1,18 @@
 import { useQuery } from "@tanstack/react-query"
-import { getHomeFeed, getPlaylist, getAlbum, getArtist } from "../services/innertube"
+import { getHomeFeed, getExplore, getPlaylist, getAlbum, getArtist } from "../services/innertube"
 
 export function useHomeFeed() {
   return useQuery({
     queryKey: ["home-feed"],
     queryFn: getHomeFeed,
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useExplore() {
+  return useQuery({
+    queryKey: ["explore"],
+    queryFn: getExplore,
     staleTime: 5 * 60_000,
   })
 }

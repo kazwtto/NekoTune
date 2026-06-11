@@ -11,6 +11,7 @@ function persist(get: () => PlayerStore) {
     currentSong: s.currentSong,
     queue: s.queue,
     queueIndex: s.queueIndex,
+    queueHistory: s.queueHistory,
     volume: s.volume,
     shuffle: s.shuffle,
     repeat: s.repeat,
@@ -39,8 +40,11 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   play: (song: Song) => {
     const state = get()
     const existingIndex = state.queue.findIndex((s) => s.videoId === song.videoId)
+    const newHistory = state.currentSong
+      ? [...state.queueHistory, state.currentSong].slice(-50)
+      : state.queueHistory
     if (existingIndex >= 0) {
-      set({ currentSong: song, queueIndex: existingIndex, isPlaying: true, isLoading: true, progress: 0, duration: song.duration || 0 })
+      set({ currentSong: song, queueIndex: existingIndex, isPlaying: true, isLoading: true, progress: 0, duration: song.duration || 0, queueHistory: newHistory })
     } else {
       set({
         currentSong: song,
@@ -50,6 +54,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
         isLoading: true,
         progress: 0,
         duration: song.duration || 0,
+        queueHistory: newHistory,
       })
     }
     persist(get)

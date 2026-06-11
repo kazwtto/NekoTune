@@ -21,8 +21,8 @@ export default function LanguageSection() {
           value={settings.language}
           onChange={handleLanguageChange}
           options={[
-            { value: "en-US", label: "English", description: "Interface in English" },
-            { value: "pt-BR", label: "Português (Brasil)", description: "Interface em português" },
+            { value: "en-US", label: "English", description: t("settings.interfaceLang") },
+            { value: "pt-BR", label: "Português (Brasil)", description: t("settings.interfaceLang") },
           ]}
         />
       </SettingsCard>

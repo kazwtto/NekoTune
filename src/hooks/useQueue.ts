@@ -19,9 +19,9 @@ export function useQueue() {
       const state = usePlayerStore.getState()
       const newQueue = [...state.queue]
       newQueue.splice(state.queueIndex + 1, 0, song)
-      store.addToQueue(song)
+      usePlayerStore.setState({ queue: newQueue })
     },
-    [store],
+    [],
   )
 
   const playLater = useCallback(

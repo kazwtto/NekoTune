@@ -62,6 +62,23 @@ interface RustHomeSection {
   items: RustHomeItem[]
 }
 
+interface RustMoodGenre {
+  title: string
+  color?: string
+  browse_id?: string
+  params?: string
+}
+
+interface RustHomeFeedData {
+  sections: RustHomeSection[]
+  tags: RustMoodGenre[]
+}
+
+interface RustExploreData {
+  sections: RustHomeSection[]
+  mood_genres: RustMoodGenre[]
+}
+
 interface RustSearchResults {
   songs: RustSongData[]
   albums: RustAlbumData[]
@@ -161,12 +178,48 @@ function mapHomeItem(item: RustHomeItem): Song | Album | Artist | Playlist {
   }
 }
 
-export async function getHomeFeed(): Promise<{ title: string; items: (Song | Album | Artist | Playlist)[] }[]> {
-  const sections = await invoke<RustHomeSection[]>("cmd_get_home_feed")
-  return sections.map((s) => ({
-    title: s.title,
-    items: s.items.map(mapHomeItem),
-  }))
+export interface HomeFeedResult {
+  sections: { title: string; items: (Song | Album | Artist | Playlist)[] }[]
+  tags: MoodGenre[]
+}
+
+export async function getHomeFeed(): Promise<HomeFeedResult> {
+  const data = await invoke<RustHomeFeedData>("cmd_get_home_feed")
+  return {
+    sections: data.sections.map((s) => ({
+      title: s.title,
+      items: s.items.map(mapHomeItem),
+    })),
+    tags: data.tags.map((t) => ({
+      title: t.title,
+      color: t.color,
+      browseId: t.browse_id,
+      params: t.params,
+    })),
+  }
+}
+
+export interface MoodGenre {
+  title: string
+  color?: string
+  browseId?: string
+  params?: string
+}
+
+export async function getExplore(): Promise<{ sections: { title: string; items: (Song | Album | Artist | Playlist)[] }[]; moodGenres: MoodGenre[] }> {
+  const data = await invoke<RustExploreData>("cmd_get_explore")
+  return {
+    sections: data.sections.map((s) => ({
+      title: s.title,
+      items: s.items.map(mapHomeItem),
+    })),
+    moodGenres: data.mood_genres.map((mg) => ({
+      title: mg.title,
+      color: mg.color,
+      browseId: mg.browse_id,
+      params: mg.params,
+    })),
+  }
 }
 
 export async function searchMusic(query: string): Promise<SearchResults> {
@@ -197,6 +250,14 @@ export async function getAlbum(browseId: string): Promise<Album> {
 export async function getArtist(browseId: string): Promise<Artist> {
   const artist = await invoke<RustArtistData>("cmd_get_artist", { browseId })
   return mapArtist(artist)
+}
+
+export async function browseCategory(browseId: string, params?: string): Promise<{ title: string; items: (Song | Album | Artist | Playlist)[] }[]> {
+  const sections = await invoke<RustHomeSection[]>("cmd_browse_category", { browseId, params: params || null })
+  return sections.map((s) => ({
+    title: s.title,
+    items: s.items.map(mapHomeItem),
+  }))
 }
 
 export async function getStreamUrl(videoId: string): Promise<{ url: string; duration: number } | null> {

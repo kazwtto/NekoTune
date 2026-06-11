@@ -1,9 +1,11 @@
 import { useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { usePlayerStore } from "../stores/playerStore"
 import { playerService } from "../services/player"
 
 export function useKeyboard() {
   const store = usePlayerStore()
+  const navigate = useNavigate()
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -49,7 +51,7 @@ export function useKeyboard() {
         case "KeyL":
           e.preventDefault()
           if (window.location.pathname !== "/lyrics") {
-            window.location.hash = "/lyrics"
+            navigate("/lyrics")
           }
           break
       }
@@ -57,5 +59,5 @@ export function useKeyboard() {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [store.isPlaying, store.volume])
+  }, [store.isPlaying, store.volume, navigate])
 }

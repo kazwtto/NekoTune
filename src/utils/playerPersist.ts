@@ -8,6 +8,7 @@ interface PersistedPlayerState {
   currentSong: Song | null
   queue: Song[]
   queueIndex: number
+  queueHistory: Song[]
   volume: number
   shuffle: boolean
   repeat: RepeatMode
@@ -20,6 +21,7 @@ export function savePlayerState(state: Partial<PersistedPlayerState>): void {
     currentSong: null,
     queue: [],
     queueIndex: -1,
+    queueHistory: [],
     volume: 0.8,
     shuffle: false,
     repeat: "off",
@@ -31,7 +33,7 @@ export function savePlayerState(state: Partial<PersistedPlayerState>): void {
 
 export function loadPlayerState(): PersistedPlayerState | null {
   const state = getItem<PersistedPlayerState | null>(STORAGE_KEY, null)
-  if (!state || !state.currentSong) return null
+  if (!state) return null
   return state
 }
 

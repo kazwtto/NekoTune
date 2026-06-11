@@ -1,9 +1,10 @@
 import { motion } from "framer-motion"
 import { useTranslation } from "react-i18next"
 import { usePlayerStore } from "../stores/playerStore"
-import { useLibraryStore } from "../stores/libraryStore"
 import SongCard from "../components/media/SongCard"
-import { Music, Clock, Heart } from "lucide-react"
+import FavoriteSongs from "../components/media/FavoriteSongs"
+import HistorySongs from "../components/media/HistorySongs"
+import { Music, Heart, Clock } from "lucide-react"
 import { usePersistedState } from "../hooks/usePersistedState"
 import { useScrollPersistence } from "../hooks/useScrollPersistence"
 
@@ -12,19 +13,11 @@ export default function LibraryPage() {
   const [activeTab, setActiveTab] = usePersistedState("nekotune-library-tab", "songs")
   const queue = usePlayerStore((s) => s.queue)
   const currentSong = usePlayerStore((s) => s.currentSong)
-  const queueHistory = usePlayerStore((s) => s.queueHistory)
-  const { favorites } = useLibraryStore()
   const scrollRef = useScrollPersistence("library")
 
   const uniqueSongs = Array.from(
     new Map(queue.map((s) => [s.videoId, s])).values(),
   )
-
-  const uniqueHistory = Array.from(
-    new Map(queueHistory.map((s) => [s.videoId, s])).values(),
-  )
-
-  const favoriteSongs = uniqueSongs.filter((s) => favorites.includes(s.videoId))
 
   const tabs = [
     { id: "songs", label: t("library.songs"), icon: Music },
@@ -34,24 +27,24 @@ export default function LibraryPage() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="sticky top-0 z-10 bg-bg-backdrop pb-2 pt-1">
-        <h2 className="mb-3 text-xl font-bold text-primary">{t("common.library")}</h2>
-        <div className="flex gap-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs transition-all duration-150 ${
-                activeTab === tab.id
-                  ? "bg-accent-muted text-accent"
-                  : "text-secondary hover:bg-bg-hover"
-              }`}
-            >
-              <tab.icon size={12} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="flex items-center gap-3 pb-3 pt-4">
+        <h1 className="text-xl font-bold text-primary">{t("common.library")}</h1>
+      </div>
+      <div className="mb-3 flex gap-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex cursor-pointer items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs transition-all duration-150 ${
+              activeTab === tab.id
+                ? "bg-accent-muted text-accent"
+                : "text-secondary hover:bg-bg-hover"
+            }`}
+          >
+            <tab.icon size={12} />
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
@@ -92,40 +85,8 @@ export default function LibraryPage() {
             </>
           )}
 
-          {activeTab === "favorites" && (
-            <>
-              {favoriteSongs.length > 0 ? (
-                <div className="flex flex-col gap-1.5">
-                  {favoriteSongs.map((song) => (
-                    <SongCard key={song.videoId} song={song} />
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-12 flex flex-col items-center gap-2">
-                  <Heart size={28} className="text-muted" />
-                  <p className="text-sm text-muted">{t("common.noResults")}</p>
-                  <p className="text-xs text-muted">{t("common.searchAndPlay")}</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {activeTab === "play-history" && (
-            <>
-              {uniqueHistory.length > 0 ? (
-                <div className="flex flex-col gap-1.5">
-                  {uniqueHistory.map((song) => (
-                    <SongCard key={song.videoId} song={song} />
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-12 flex flex-col items-center gap-2">
-                  <Clock size={28} className="text-muted" />
-                  <p className="text-sm text-muted">{t("library.noPlayHistory")}</p>
-                </div>
-              )}
-            </>
-          )}
+          {activeTab === "favorites" && <FavoriteSongs />}
+          {activeTab === "play-history" && <HistorySongs />}
         </motion.div>
       </div>
     </div>

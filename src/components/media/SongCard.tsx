@@ -87,7 +87,7 @@ export default function SongCard({ song, index }: SongCardProps) {
             <Plus size={14} /> {t("player.addToQueue")}
           </ContextMenuItem>
           <ContextMenuItem onClick={() => { toggleFavorite(song.videoId); setMenuPos(null) }}>
-            <Heart size={14} fill={isFav ? "currentColor" : "none"} /> {isFav ? t("common.favorites") : t("common.favorites")}
+            <Heart size={14} fill={isFav ? "currentColor" : "none"} /> {isFav ? t("common.removeFromFavorites") : t("common.addToFavorites")}
           </ContextMenuItem>
         </ContextMenu>
       )}

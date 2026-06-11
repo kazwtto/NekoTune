@@ -40,7 +40,7 @@ export default function LyricsPage() {
 
       <div className="pb-2 text-center">
         <p className="text-xs text-muted">
-          {t("common.loading")}
+          {currentSong ? t("common.loading") : ""}
         </p>
       </div>
     </motion.div>
