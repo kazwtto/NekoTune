@@ -17,7 +17,7 @@ export default function PlaylistsPage() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="mt-12 flex flex-col items-center gap-2">
+        <div className="pr-6 pb-6 mt-12 flex flex-col items-center gap-2">
           <ListMusic size={28} className="text-muted" />
           <p className="text-sm text-muted">{t("library.noPlaylists")}</p>
         </div>

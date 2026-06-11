@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react"
 import { usePlayerStore } from "../stores/playerStore"
 import { playerService } from "../services/player"
-import { loadPlayerState } from "../utils/playerPersist"
+import { loadPlayerState, savePlayerState } from "../utils/playerPersist"
 import type { Song } from "../types/music"
 
 let restored = false
@@ -49,44 +49,22 @@ export function usePlayer() {
   }, [])
 
   const play = useCallback((song: Song) => {
-    const state = usePlayerStore.getState()
-    const newHistory = state.currentSong
-      ? [...state.queueHistory, state.currentSong].slice(-50)
-      : state.queueHistory
-    const existingIndex = state.queue.findIndex((s) => s.videoId === song.videoId)
-    if (existingIndex >= 0) {
-      usePlayerStore.setState({
-        currentSong: song,
-        queueIndex: existingIndex,
-        queueHistory: newHistory,
-        isPlaying: true,
-        isLoading: true,
-        progress: 0,
-        duration: song.duration || 0,
-      })
-    } else {
-      usePlayerStore.setState({
-        currentSong: song,
-        queue: [...state.queue, song],
-        queueIndex: state.queue.length,
-        queueHistory: newHistory,
-        isPlaying: true,
-        isLoading: true,
-        progress: 0,
-        duration: song.duration || 0,
-      })
-    }
+    const store = usePlayerStore.getState()
+    store.play(song)
     playerService.loadAndPlay(song).catch((err) => {
       console.error("Play failed:", err)
       usePlayerStore.setState({ isLoading: false, isPlaying: false })
+      savePlayerState(usePlayerStore.getState())
     })
   }, [])
 
   const pause = useCallback(() => {
+    usePlayerStore.getState().pause()
     playerService.pause()
   }, [])
 
   const resume = useCallback(() => {
+    usePlayerStore.getState().resume()
     playerService.play()
   }, [])
 
@@ -116,6 +94,7 @@ export function usePlayer() {
   const seek = useCallback((time: number) => {
     playerService.seek(time)
     usePlayerStore.setState({ progress: time })
+    savePlayerState(usePlayerStore.getState())
   }, [])
 
   const playFromQueue = useCallback((index: number) => {
@@ -130,13 +109,13 @@ export function usePlayer() {
         progress: 0,
         duration: song.duration || 0,
       })
+      savePlayerState(usePlayerStore.getState())
       playerService.loadAndPlay(song)
     }
   }, [])
 
   const addToQueue = useCallback((song: Song) => {
-    const state = usePlayerStore.getState()
-    usePlayerStore.setState({ queue: [...state.queue, song] })
+    usePlayerStore.getState().addToQueue(song)
   }, [])
 
   const toggleShuffle = useCallback(() => {

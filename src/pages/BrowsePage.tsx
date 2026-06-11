@@ -121,7 +121,7 @@ export default function BrowsePage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="relative h-full overflow-y-auto"
+      className="relative h-full overflow-y-auto pr-6 pb-6"
       ref={scrollRef}
     >
       <div className="pt-4">

@@ -16,7 +16,9 @@ export default function FavoritesPage() {
         <h1 className="text-xl font-bold text-primary">{t("common.favorites")}</h1>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <FavoriteSongs />
+        <div className="pr-6 pb-6">
+          <FavoriteSongs />
+        </div>
       </div>
     </motion.div>
   )
