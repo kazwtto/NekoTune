@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useMemo } from "react"
+import { motion } from "framer-motion"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import { useHomeFeed, useExplore } from "../hooks/useInnertube"
@@ -20,7 +20,7 @@ function SectionTitle({ title }: { title: string }) {
   return <h3 className="mb-3 text-base font-bold text-primary">{title}</h3>
 }
 
-function TagCarousel({ tags }: { tags: MoodGenre[] }) {
+function TagCarousel({ tags, onRefresh, refreshing }: { tags: MoodGenre[]; onRefresh?: () => void; refreshing?: boolean }) {
   const navigate = useNavigate()
 
   if (tags.length === 0) return null
@@ -28,6 +28,13 @@ function TagCarousel({ tags }: { tags: MoodGenre[] }) {
   return (
     <div className="mb-5">
       <ScrollRow className="gap-2">
+        <button
+          onClick={onRefresh}
+          className="flex-shrink-0 cursor-pointer rounded-full w-9 h-9 p-0 flex items-center justify-center bg-bg-surface text-secondary transition-all duration-150 hover:brightness-110"
+          title="Refresh"
+        >
+          <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+        </button>
         {tags.map((tag, i) => (
           <button
             key={i}
@@ -170,18 +177,7 @@ export default function HomePage() {
   const { data: exploreData, refetch: refetchExplore } = useExplore()
   const { play } = usePlayer()
   const queueHistory = usePlayerStore((s) => s.queueHistory)
-  const [scrolled, setScrolled] = useState(false)
   const scrollRef = useScrollPersistence("home")
-
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    function onScroll() {
-      setScrolled(el!.scrollTop > 80)
-    }
-    el.addEventListener("scroll", onScroll, { passive: true })
-    return () => el.removeEventListener("scroll", onScroll)
-  }, [scrollRef])
 
   const isLoading = homeLoading
 
@@ -273,103 +269,97 @@ export default function HomePage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="relative h-full overflow-y-auto"
-      ref={scrollRef}
-    >
-      {isLoading && (
-        <div className="flex flex-col gap-5 pt-4">
-          <div className="flex gap-2 overflow-hidden">
-            {[80, 120, 100, 90, 140, 110, 85].map((w, i) => (
-              <Shimmer key={i} height={36} width={`${w}px`} rounded="9999px" />
-            ))}
-          </div>
-          <div>
-            <Shimmer height={16} width="30%" />
-            <div className="mt-3 flex gap-2">
-              <Shimmer height={56} width="280px" rounded="8px" />
-              <Shimmer height={56} width="280px" rounded="8px" />
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        className="relative h-full overflow-y-auto"
+        ref={scrollRef}
+      >
+        {isLoading && (
+          <div className="sticky top-0 z-10 bg-bg-base pt-4 pb-2">
+            <div className="flex gap-2 overflow-hidden">
+              {[80, 120, 100, 90, 140, 110, 85].map((w, i) => (
+                <Shimmer key={i} height={36} width={`${w}px`} rounded="9999px" />
+              ))}
             </div>
           </div>
-          <div>
-            <Shimmer height={16} width="40%" />
-            <div className="mt-3 flex gap-3">
-              <Shimmer height={160} width="160px" rounded="12px" />
-              <Shimmer height={160} width="160px" rounded="12px" />
-              <Shimmer height={160} width="160px" rounded="12px" />
-            </div>
-          </div>
-        </div>
-      )}
+        )}
 
-      {!isLoading && homeError && (
-        <div className="mt-12 flex flex-col items-center gap-3">
-          <Music size={32} className="text-muted" />
-          <p className="text-sm text-error">{t("common.failedToLoad")}</p>
-          <button
-            onClick={() => refetchHome()}
-            className="cursor-pointer rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-all duration-150 hover:opacity-90"
-          >
-            {t("common.retry")}
-          </button>
-        </div>
-      )}
-
-      {!isLoading && !homeError && (
-        <div className="pt-4">
-          <TagCarousel tags={tags} />
-
-          {quickPicks.length > 0 && (
-            <SongRow songs={quickPicks} title={t("home.quickPicks")} />
-          )}
-
-          {keepListening.length > 0 && (
-            <SongRow songs={keepListening} title={t("home.continueListening")} />
-          )}
-
-          {allSections.map((sec, idx) => {
-            const title = getLocalizedTitle(sec.title, t)
-            return (
-              <div key={idx}>
-                {sec.songs.length > 0 && <SongRow songs={sec.songs} title={title} />}
-                {sec.albums.length > 0 && <AlbumRow albums={sec.albums} title={title} />}
-                {sec.artists.length > 0 && <ArtistRow artists={sec.artists} title={title} />}
-                {sec.playlists.length > 0 && <PlaylistRow playlists={sec.playlists} title={title} />}
+        {isLoading && (
+          <div className="flex flex-col gap-5">
+            <div>
+              <Shimmer height={16} width="30%" />
+              <div className="mt-3 flex gap-2">
+                <Shimmer height={56} width="280px" rounded="8px" />
+                <Shimmer height={56} width="280px" rounded="8px" />
               </div>
-            )
-          })}
-        </div>
-      )}
+            </div>
+            <div>
+              <Shimmer height={16} width="40%" />
+              <div className="mt-3 flex gap-3">
+                <Shimmer height={160} width="160px" rounded="12px" />
+                <Shimmer height={160} width="160px" rounded="12px" />
+                <Shimmer height={160} width="160px" rounded="12px" />
+              </div>
+            </div>
+          </div>
+        )}
 
-      <div className="fixed bottom-24 right-6 z-30 flex flex-col gap-2">
-        <AnimatePresence>
-          {scrolled && (
-            <motion.button
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              onClick={() => { refetchHome(); refetchExplore(); }}
-              className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-bg-surface shadow-lg transition-colors hover:bg-bg-hover"
-              title={t("home.refresh")}
+        {!isLoading && homeError && (
+          <div className="mt-12 flex flex-col items-center gap-3">
+            <Music size={32} className="text-muted" />
+            <p className="text-sm text-error">{t("common.failedToLoad")}</p>
+            <button
+              onClick={() => refetchHome()}
+              className="cursor-pointer rounded-full bg-accent px-5 py-2 text-sm font-medium text-white transition-all duration-150 hover:opacity-90"
             >
-              <RefreshCw size={16} className={homeRefetching ? "animate-spin text-accent" : "text-secondary"} />
-            </motion.button>
-          )}
-        </AnimatePresence>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleRandomSong}
-          className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-accent shadow-lg shadow-accent/30 text-white transition-shadow hover:shadow-xl hover:shadow-accent/40"
-          title={t("home.randomSong")}
-        >
-          <Shuffle size={18} />
-        </motion.button>
-      </div>
-    </motion.div>
+              {t("common.retry")}
+            </button>
+          </div>
+        )}
+
+        {!isLoading && !homeError && tags.length > 0 && (
+          <div className="sticky top-0 z-10 bg-bg-base pt-4 pb-2">
+            <TagCarousel tags={tags} onRefresh={() => { refetchHome(); refetchExplore(); }} refreshing={homeRefetching} />
+          </div>
+        )}
+
+        {!isLoading && !homeError && (
+          <div className={tags.length > 0 ? "" : "pt-4"}>
+            {quickPicks.length > 0 && (
+              <SongRow songs={quickPicks} title={t("home.quickPicks")} />
+            )}
+
+            {keepListening.length > 0 && (
+              <SongRow songs={keepListening} title={t("home.continueListening")} />
+            )}
+
+            {allSections.map((sec, idx) => {
+              const title = getLocalizedTitle(sec.title, t)
+              return (
+                <div key={idx}>
+                  {sec.songs.length > 0 && <SongRow songs={sec.songs} title={title} />}
+                  {sec.albums.length > 0 && <AlbumRow albums={sec.albums} title={title} />}
+                  {sec.artists.length > 0 && <ArtistRow artists={sec.artists} title={title} />}
+                  {sec.playlists.length > 0 && <PlaylistRow playlists={sec.playlists} title={title} />}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </motion.div>
+
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={handleRandomSong}
+        className="fixed bottom-24 right-6 z-30 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-accent shadow-lg shadow-accent/30 text-white transition-shadow hover:shadow-xl hover:shadow-accent/40"
+        title={t("home.randomSong")}
+      >
+        <Shuffle size={18} />
+      </motion.button>
+    </>
   )
 }

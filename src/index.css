@@ -105,6 +105,24 @@ a {
   display: none;
 }
 
+.scrollbar-trending {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-muted) transparent;
+}
+.scrollbar-trending::-webkit-scrollbar {
+  height: 4px;
+}
+.scrollbar-trending::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-trending::-webkit-scrollbar-thumb {
+  background: var(--color-muted);
+  border-radius: 2px;
+}
+.scrollbar-trending::-webkit-scrollbar-thumb:hover {
+  background: var(--color-secondary);
+}
+
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;

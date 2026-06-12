@@ -71,6 +71,19 @@ function getSectionTitle(title: string, t: (key: string) => string): string {
   return title
 }
 
+function isTrendingSection(title: string): boolean {
+  const lower = title.toLowerCase()
+  return lower.includes("trending") || lower.includes("hot")
+}
+
+function chunkArray<T>(array: T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size))
+  }
+  return chunks
+}
+
 export default function ExplorePage() {
   const { t } = useTranslation()
   const { data, isLoading, error } = useExplore()
@@ -80,7 +93,7 @@ export default function ExplorePage() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="relative h-full overflow-y-auto"
+      className="relative h-full w-full overflow-y-auto"
     >
       <div className="pr-6 pb-6">
         {/* Mood & Genres grid */}
@@ -126,50 +139,91 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {/* Content sections as grids */}
+        {/* Content sections */}
         {!isLoading && !error && data?.sections && data.sections.map((section, idx) => {
           const songs = section.items.filter(isSong)
           const albums = section.items.filter(isAlbum)
           const artists = section.items.filter(isArtist)
           const playlists = section.items.filter(isPlaylist)
+          const trending = isTrendingSection(section.title)
 
           return (
             <div key={idx} className="mb-6">
               <h3 className="mb-3 text-sm font-bold text-primary">{getSectionTitle(section.title, t)}</h3>
-              {albums.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+              {albums.length > 0 && trending ? (
+                <div className="scrollbar-trending flex gap-3 overflow-x-auto scroll-smooth pb-2 snap-x snap-mandatory">
+                  {chunkArray(albums.slice(0, 15), 5).map((col, ci) => (
+                    <div key={ci} className="flex flex-col gap-3 w-1/2 shrink-0 snap-start">
+                      {col.map((album) => (
+                        <AlbumCard key={album.browseId} album={album} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : albums.length > 0 ? (
+                <div className="grid grid-cols-3 gap-3 max-w-full sm:grid-cols-4 md:grid-cols-5">
                   {albums.slice(0, 10).map((album) => (
                     <div key={album.browseId}>
                       <AlbumCard album={album} />
                     </div>
                   ))}
                 </div>
-              )}
-              {artists.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+              ) : null}
+              {artists.length > 0 && trending ? (
+                <div className="scrollbar-trending flex gap-3 overflow-x-auto scroll-smooth pb-2 snap-x snap-mandatory">
+                  {chunkArray(artists.slice(0, 15), 5).map((col, ci) => (
+                    <div key={ci} className="flex flex-col gap-3 w-1/2 shrink-0 snap-start">
+                      {col.map((artist) => (
+                        <ArtistCard key={artist.browseId} artist={artist} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : artists.length > 0 ? (
+                <div className="grid grid-cols-3 gap-3 max-w-full sm:grid-cols-4 md:grid-cols-5">
                   {artists.slice(0, 10).map((artist) => (
                     <div key={artist.browseId}>
                       <ArtistCard artist={artist} />
                     </div>
                   ))}
                 </div>
-              )}
-              {playlists.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+              ) : null}
+              {playlists.length > 0 && trending ? (
+                <div className="scrollbar-trending flex gap-3 overflow-x-auto scroll-smooth pb-2 snap-x snap-mandatory">
+                  {chunkArray(playlists.slice(0, 15), 5).map((col, ci) => (
+                    <div key={ci} className="flex flex-col gap-3 w-1/2 shrink-0 snap-start">
+                      {col.map((pl) => (
+                        <PlaylistCard key={pl.browseId} playlist={pl} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : playlists.length > 0 ? (
+                <div className="grid grid-cols-3 gap-3 max-w-full sm:grid-cols-4 md:grid-cols-5">
                   {playlists.slice(0, 10).map((pl) => (
                     <div key={pl.browseId}>
                       <PlaylistCard playlist={pl} />
                     </div>
                   ))}
                 </div>
-              )}
-              {songs.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
+              ) : null}
+              {songs.length > 0 && trending ? (
+                <div className="scrollbar-trending flex gap-3 overflow-x-auto scroll-smooth pb-2 snap-x snap-mandatory">
+                  {chunkArray(songs.slice(0, 15), 5).map((col, ci) => (
+                    <div key={ci} className="flex flex-col gap-3 w-1/2 shrink-0 snap-start">
+                      {col.map((song) => (
+                        <SongCard key={song.videoId} song={song} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ) : songs.length > 0 ? (
+                <div className="grid grid-cols-3 gap-3 max-w-full sm:grid-cols-4 md:grid-cols-5">
                   {songs.slice(0, 10).map((song) => (
                     <SongCard key={song.videoId} song={song} />
                   ))}
                 </div>
-              )}
+              ) : null}
             </div>
           )
         })}
