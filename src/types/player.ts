@@ -2,11 +2,16 @@ import type { Song } from "./music"
 
 export type RepeatMode = "off" | "all" | "one"
 
+export interface HistoryEntry {
+  song: Song
+  playedAt: number
+}
+
 export interface PlayerState {
   currentSong: Song | null
   queue: Song[]
   queueIndex: number
-  queueHistory: Song[]
+  queueHistory: HistoryEntry[]
   isPlaying: boolean
   isLoading: boolean
   volume: number

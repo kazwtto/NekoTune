@@ -83,7 +83,13 @@
     "playHistory": "Histórico de Reprodução",
     "noSearchHistory": "Nenhum histórico de busca ainda",
     "noPlayHistory": "Nenhum histórico de reprodução ainda",
-    "clearSearchHistory": "Limpar"
+    "clearSearchHistory": "Limpar",
+    "local": "Local",
+    "localSongs": "Músicas Locais",
+    "localSongsCount": "{{count}} músicas locais",
+    "noLocalSongs": "Nenhuma música local encontrada",
+    "configureFolder": "Configure sua pasta de músicas nas Configurações",
+    "scanning": "Escaneando..."
   },
   "settings": {
     "appearance": "Aparência",
@@ -129,7 +135,13 @@
     "colorBlue": "Azul",
     "colorPink": "Rosa",
     "colorYellow": "Amarelo",
-    "colorRed": "Vermelho"
+    "colorRed": "Vermelho",
+    "localMusic": "Músicas Locais",
+    "musicFolder": "Pasta de Músicas",
+    "musicFolderDesc": "Pasta para escanear arquivos de áudio locais",
+    "browse": "Selecionar...",
+    "scanNow": "Escanear Agora",
+    "notSet": "Não definido"
   },
   "home": {
     "greeting": "Boa noite",

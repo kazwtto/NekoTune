@@ -21,9 +21,7 @@ export default function PlaylistCard({ playlist }: PlaylistCardProps) {
         {playlist.coverUrl ? (
           <img src={proxyUrl(playlist.coverUrl)} alt={playlist.title} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-surface">
-            <ListMusic size={24} className="text-muted" />
-          </div>
+          <div className="thumb-placeholder h-full w-full" />
         )}
       </div>
       <p className="truncate text-sm font-medium text-primary">{playlist.title}</p>

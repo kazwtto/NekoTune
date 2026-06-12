@@ -46,8 +46,13 @@ class PlayerService {
       let audioSrc: string | undefined | null = null
       let durationFromYtdlp = 0
 
-      if (song.isLocal && song.filePath) {
-        audioSrc = `nekotune://${song.filePath}`
+      if (song.isLocal) {
+        if (song.fileData) {
+          audioSrc = song.fileData
+        } else if (song.filePath) {
+          const { invoke } = await import("@tauri-apps/api/core")
+          audioSrc = await invoke<string>("cmd_get_local_file_data", { path: song.filePath })
+        }
       } else {
         if (!song.videoId) return
         const { getStreamUrl: fetchStream } = await import("./innertube")

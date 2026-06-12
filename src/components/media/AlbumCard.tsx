@@ -19,9 +19,7 @@ export default function AlbumCard({ album }: AlbumCardProps) {
         {album.coverUrl ? (
           <img src={proxyUrl(album.coverUrl)} alt={album.title} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-surface">
-            <Music size={24} className="text-muted" />
-          </div>
+          <div className="thumb-placeholder h-full w-full" />
         )}
       </div>
       <p className="truncate text-sm font-medium text-primary">{album.title}</p>

@@ -11,6 +11,7 @@ export interface Song {
   thumbnail?: string
   isLocal?: boolean
   filePath?: string
+  fileData?: string
 }
 
 export interface Album {
@@ -52,4 +53,15 @@ export interface SearchResults {
   artists: Artist[]
   playlists: Playlist[]
   videos: Song[]
+}
+
+export interface LocalSong {
+  id: string
+  filePath: string
+  title: string
+  artist: string
+  album?: string
+  duration: number
+  coverData?: string
+  fileData?: string
 }

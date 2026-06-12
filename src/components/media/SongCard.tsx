@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { usePlayer } from "../../hooks/usePlayer"
 import { useLibraryStore } from "../../stores/libraryStore"
-import { Play, Plus, Heart } from "lucide-react"
+import { Play, Plus, Heart, Music } from "lucide-react"
 import type { Song } from "../../types/music"
 import { formatTime } from "../../utils/format"
 import { useState } from "react"
@@ -42,9 +42,17 @@ export default function SongCard({ song, index }: SongCardProps) {
             {index + 1}
           </span>
         )}
-        {song.albumArtUrl || song.videoId ? (
+        {song.isLocal ? (
+          song.albumArtUrl ? (
+            <img src={song.albumArtUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg object-cover" />
+          ) : (
+            <div className="thumb-placeholder h-10 w-10" />
+          )
+        ) : song.albumArtUrl || song.videoId ? (
           <img src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg object-cover" />
-        ) : null}
+        ) : (
+          <div className="thumb-placeholder h-10 w-10" />
+        )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-primary">{song.title}</p>
           <p className="truncate text-xs text-secondary">
@@ -53,9 +61,11 @@ export default function SongCard({ song, index }: SongCardProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {song.duration > 0 && (
           <span className="text-xs tabular-nums text-muted">
             {formatTime(song.duration)}
           </span>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation()

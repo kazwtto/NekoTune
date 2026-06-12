@@ -19,9 +19,7 @@ export default function ArtistCard({ artist }: ArtistCardProps) {
         {artist.imageUrl ? (
           <img src={proxyUrl(artist.imageUrl)} alt={artist.name} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-surface">
-            <User size={28} className="text-muted" />
-          </div>
+          <div className="thumb-placeholder h-full w-full rounded-full" />
         )}
       </div>
       <p className="truncate text-sm font-medium text-primary">{artist.name}</p>

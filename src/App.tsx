@@ -12,7 +12,6 @@ import PlaylistPage from "./pages/PlaylistPage"
 import ArtistPage from "./pages/ArtistPage"
 import AlbumPage from "./pages/AlbumPage"
 import LyricsPage from "./pages/LyricsPage"
-import SettingsPage from "./pages/SettingsPage"
 import BrowsePage from "./pages/BrowsePage"
 
 export default function App() {
@@ -31,7 +30,6 @@ export default function App() {
           <Route path="/artist/:id" element={<ArtistPage />} />
           <Route path="/album/:id" element={<AlbumPage />} />
           <Route path="/lyrics" element={<LyricsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/browse/:browseId" element={<BrowsePage />} />
         </Routes>
       </AnimatePresence>

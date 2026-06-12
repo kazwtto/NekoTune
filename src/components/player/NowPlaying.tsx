@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router-dom"
 import {
   Music, Shuffle, Repeat, Heart, ListMusic, Loader2,
   ChevronDown, Repeat1, Mic2, X,
@@ -25,6 +26,7 @@ export default function NowPlaying() {
   } = usePlayer()
   const { favorites, toggleFavorite } = useLibraryStore()
   const queue = usePlayerStore((s) => s.queue)
+  const navigate = useNavigate()
   const queueIndex = usePlayerStore((s) => s.queueIndex)
   const [showLyrics, setShowLyrics] = useState(false)
   const [showQueue, setShowQueue] = useState(false)
@@ -79,16 +81,24 @@ export default function NowPlaying() {
             {/* Album Art */}
             <div className="flex flex-1 items-center justify-center px-8">
               <div className="relative aspect-square w-full max-w-[290px] overflow-hidden rounded-2xl shadow-2xl">
-                {currentSong.albumArtUrl || currentSong.videoId ? (
+                {currentSong.isLocal ? (
+                  currentSong.albumArtUrl ? (
+                    <img
+                      src={currentSong.albumArtUrl}
+                      alt={currentSong.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="thumb-placeholder h-full w-full rounded-2xl" />
+                  )
+                ) : currentSong.albumArtUrl || currentSong.videoId ? (
                   <img
                     src={highResThumb(currentSong.videoId) || proxyUrl(currentSong.albumArtUrl)}
                     alt={currentSong.title}
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-bg-surface">
-                    <Music size={56} className="text-muted" />
-                  </div>
+                  <div className="thumb-placeholder h-full w-full rounded-2xl" />
                 )}
                 {isLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
@@ -103,7 +113,14 @@ export default function NowPlaying() {
               <h2 className="truncate text-center text-xl font-bold text-primary">
                 {currentSong.title}
               </h2>
-              <p className="mt-1 truncate text-center text-sm text-secondary">
+              <p
+                className="mt-1 truncate text-center text-sm text-secondary hover:text-primary transition-colors duration-150"
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  setVisible(false)
+                  navigate(`/artist/${currentSong.artistId}`)
+                }}
+              >
                 {currentSong.artist}
               </p>
             </div>

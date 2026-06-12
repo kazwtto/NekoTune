@@ -55,6 +55,7 @@ interface RustHomeItem {
   subtitle?: string
   cover_url?: string
   duration?: number
+  artist_id?: string
 }
 
 interface RustHomeSection {
@@ -147,7 +148,8 @@ function mapHomeItem(item: RustHomeItem): Song | Album | Artist | Playlist {
         id: item.id || item.video_id || "",
         videoId: item.video_id || item.id || "",
         title: item.title,
-        artist: item.subtitle || "Unknown",
+        artist: item.subtitle === "Unknown" ? "" : (item.subtitle || ""),
+        artistId: item.artist_id,
         albumArtUrl: item.cover_url,
         duration: item.duration || 0,
       } as Song
@@ -156,7 +158,7 @@ function mapHomeItem(item: RustHomeItem): Song | Album | Artist | Playlist {
         id: item.browse_id || item.id || "",
         browseId: item.browse_id || item.id || "",
         title: item.title,
-        artist: item.subtitle || "Unknown",
+        artist: item.subtitle || "",
         coverUrl: item.cover_url,
       } as Album
     case "artist":

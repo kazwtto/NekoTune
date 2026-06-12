@@ -17,7 +17,9 @@ export default function Titlebar() {
   const navigate = useNavigate()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { query, setQuery, suggestions, history, addToHistory, clearHistory } = useSearch()
-  const fullscreen = useUiStore((s) => s.nowPlayingVisible)
+  const fullscreen = useUiStore((s) => s.nowPlayingVisible || s.settingsVisible)
+  const settingsVisible = useUiStore((s) => s.settingsVisible)
+  const setSettingsVisible = useUiStore((s) => s.setSettingsVisible)
 
   useEffect(() => {
     appWindow.isMaximized().then(setIsMaximized)
@@ -62,8 +64,8 @@ export default function Titlebar() {
       <div className={`flex items-center gap-3 px-5 h-full overflow-hidden transition-all duration-300 ${
         fullscreen ? "w-0 opacity-0 px-0 gap-0 pointer-events-none" : "flex-1"
       }`} data-tauri-drag-region>
-        <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-gradient-to-br from-accent to-accent-muted shadow-lg shadow-accent/20 pointer-events-none">
-          <Cat size={14} className="text-white drop-shadow-md" />
+        <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-accent/10 pointer-events-none">
+          <Cat size={14} className="text-accent" />
         </div>
         <span className="text-sm font-bold tracking-wider text-primary pointer-events-none drop-shadow-sm">
           {APP_NAME}
@@ -123,9 +125,9 @@ export default function Titlebar() {
         </div>
       </div>
 
-      <div className={`flex items-center pl-4 ${fullscreen ? "ml-auto absolute right-0 top-0 h-10" : "h-full"}`}>
+      <div className={`flex items-center pl-4 ${fullscreen ? "ml-auto absolute right-0 top-0 h-14" : "h-full"}`}>
         <button
-          onClick={() => navigate("/settings")}
+          onClick={() => setSettingsVisible(!settingsVisible)}
           className={`flex h-9 cursor-pointer items-center justify-center rounded-full text-secondary transition-all duration-300 hover:bg-white/[0.08] hover:text-primary overflow-hidden ${
             fullscreen ? "w-0 opacity-0 mr-0 pointer-events-none" : "w-9 mr-2"
           }`}

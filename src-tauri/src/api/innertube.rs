@@ -142,6 +142,8 @@ pub struct HomeItem {
     pub cover_url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration: Option<u32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artist_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -312,25 +314,36 @@ fn extract_artist_from_item(item: &serde_json::Value) -> (String, Option<String>
             .and_then(|b| b.get("browseId"))
             .and_then(|b| b.as_str())
             .map(|s| s.to_string());
-        return (name, id);
+        if id.is_some() {
+            return (name, id);
+        }
     }
     if let Some(columns) = item.get("flexColumns").and_then(|f| f.as_array()) {
         if columns.len() >= 2 {
-            if let Some(text) = columns[1]
+            let flex_col = columns[1]
                 .get("musicResponsiveListItemFlexColumnRenderer")
-                .and_then(|r| r.get("text"))
-                .and_then(get_text_from_runs)
-            {
+                .and_then(|r| r.get("text"));
+            let artist_id = flex_col
+                .and_then(|t| t.get("runs"))
+                .and_then(|r| r.as_array())
+                .and_then(|a| a.iter().find(|r| r.get("navigationEndpoint").is_some()))
+                .and_then(|r| r.get("navigationEndpoint"))
+                .and_then(|n| n.get("browseEndpoint"))
+                .and_then(|b| b.get("browseId"))
+                .and_then(|b| b.as_str())
+                .map(|s| s.to_string());
+            if let Some(text) = flex_col.and_then(get_text_from_runs) {
                 if !text.is_empty() {
                     if let Some(artist) = text.splitn(2, " - ").nth(1) {
-                        return (artist.to_string(), None);
+                        return (artist.to_string(), artist_id);
                     }
                     if let Some(artist) = text.splitn(2, "  ").nth(1) {
-                        return (artist.to_string(), None);
+                        return (artist.to_string(), artist_id);
                     }
                     if let Some(artist) = text.splitn(2, '·').nth(1) {
-                        return (artist.trim().to_string(), None);
+                        return (artist.trim().to_string(), artist_id);
                     }
+                    return (text, artist_id);
                 }
             }
         }
@@ -383,6 +396,16 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
         .and_then(get_text_from_runs)
         .unwrap_or_else(|| "Unknown".to_string());
     let subtitle = item.get("subtitle").and_then(get_text_from_runs);
+    let artist_id = item
+        .get("subtitle")
+        .and_then(|s| s.get("runs"))
+        .and_then(|r| r.as_array())
+        .and_then(|a| a.first())
+        .and_then(|r| r.get("navigationEndpoint"))
+        .and_then(|n| n.get("browseEndpoint"))
+        .and_then(|b| b.get("browseId"))
+        .and_then(|b| b.as_str())
+        .map(|s| s.to_string());
     let cover_url = item
         .get("thumbnailRenderer")
         .and_then(|t| t.get("musicThumbnailRenderer"))
@@ -407,6 +430,7 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
             subtitle,
             cover_url,
             duration: None,
+            artist_id: None,
         }),
         "MUSIC_PAGE_TYPE_ARTIST" => Some(HomeItem {
             item_type: "artist".to_string(),
@@ -417,6 +441,7 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
             subtitle,
             cover_url,
             duration: None,
+            artist_id: None,
         }),
         "MUSIC_PAGE_TYPE_PLAYLIST" | "MUSIC_PAGE_TYPE_USER_CHANNEL" => Some(HomeItem {
             item_type: "playlist".to_string(),
@@ -427,6 +452,7 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
             subtitle,
             cover_url,
             duration: None,
+            artist_id: None,
         }),
         _ => {
             if let Some(vid) = &video_id {
@@ -439,6 +465,7 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
                     subtitle,
                     cover_url,
                     duration: None,
+                    artist_id,
                 })
             } else if let Some(bid) = &browse_id {
                 Some(HomeItem {
@@ -450,6 +477,7 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
                     subtitle,
                     cover_url,
                     duration: None,
+                    artist_id: None,
                 })
             } else {
                 None
@@ -512,6 +540,7 @@ fn parse_music_responsive_list_item(item: &serde_json::Value) -> Option<HomeItem
         subtitle: Some(song.artist),
         cover_url: song.album_art_url,
         duration: Some(song.duration),
+        artist_id: song.artist_id,
     })
 }
 
@@ -786,6 +815,7 @@ pub async fn fetch_explore() -> Result<ExploreData, String> {
                                         subtitle: Some(song.artist),
                                         cover_url: song.album_art_url,
                                         duration: Some(song.duration),
+                                        artist_id: song.artist_id,
                                     });
                                 }
                             }
@@ -863,6 +893,7 @@ pub async fn fetch_explore() -> Result<ExploreData, String> {
                                     subtitle: Some(song.artist),
                                     cover_url: song.album_art_url,
                                     duration: Some(song.duration),
+                                    artist_id: song.artist_id,
                                 });
                             }
                         }
@@ -903,6 +934,7 @@ pub async fn fetch_explore() -> Result<ExploreData, String> {
                                     subtitle: Some(song.artist),
                                     cover_url: song.album_art_url,
                                     duration: Some(song.duration),
+                                    artist_id: song.artist_id,
                                 });
                             }
                         }
@@ -945,6 +977,7 @@ pub async fn fetch_explore() -> Result<ExploreData, String> {
                                                 subtitle: Some(song.artist),
                                                 cover_url: song.album_art_url,
                                                 duration: Some(song.duration),
+                                                artist_id: song.artist_id,
                                             });
                                         }
                                     }
@@ -985,6 +1018,7 @@ pub async fn fetch_explore() -> Result<ExploreData, String> {
                                                 subtitle: Some(song.artist),
                                                 cover_url: song.album_art_url,
                                                 duration: Some(song.duration),
+                                                artist_id: song.artist_id,
                                             });
                                         }
                                     }
@@ -1071,14 +1105,24 @@ pub async fn search_music(query: &str) -> Result<SearchResults, String> {
 fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults) {
     if let Some(video_id) = extract_video_id_from_item(item) {
         let title = extract_title_from_item(item);
-        let subtitle_text = item
+        let flex_col = item
             .get("flexColumns")
             .and_then(|f| f.as_array())
             .and_then(|a| a.get(1))
             .and_then(|c| c.get("musicResponsiveListItemFlexColumnRenderer"))
-            .and_then(|r| r.get("text"))
+            .and_then(|r| r.get("text"));
+        let subtitle_text = flex_col
             .and_then(get_text_from_runs)
             .unwrap_or_default();
+        let artist_id = flex_col
+            .and_then(|t| t.get("runs"))
+            .and_then(|r| r.as_array())
+            .and_then(|a| a.iter().find(|r| r.get("navigationEndpoint").is_some()))
+            .and_then(|r| r.get("navigationEndpoint"))
+            .and_then(|n| n.get("browseEndpoint"))
+            .and_then(|b| b.get("browseId"))
+            .and_then(|b| b.as_str())
+            .map(|s| s.to_string());
         let cover_url = extract_thumbnail_from_item(item);
         let duration = extract_duration_from_item(item);
 
@@ -1097,7 +1141,7 @@ fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults
             video_id,
             title,
             artist,
-            artist_id: None,
+            artist_id,
             album: None,
             album_id: None,
             album_art_url: cover_url,

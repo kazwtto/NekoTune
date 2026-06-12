@@ -150,3 +150,35 @@ input[type="range"]::-moz-range-thumb {
   border: none;
   cursor: pointer;
 }
+
+.thumb-placeholder {
+  position: relative;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-accent) 20%, transparent);
+}
+
+.thumb-placeholder::before {
+  content: "";
+  width: 30%;
+  height: 30%;
+  min-width: 8px;
+  min-height: 8px;
+  border: 2px solid var(--color-accent);
+  border-radius: 50%;
+  opacity: 0.5;
+}
+
+.thumb-placeholder::after {
+  content: "";
+  position: absolute;
+  width: 2px;
+  height: 35%;
+  min-height: 10px;
+  background: var(--color-accent);
+  opacity: 0.5;
+  transform: translate(25%, 15%);
+}

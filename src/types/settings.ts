@@ -10,4 +10,5 @@ export interface AppSettings {
   enableSkipSilence: boolean
   autoPlay: boolean
   autoSkipOnError: boolean
+  musicFolder: string
 }

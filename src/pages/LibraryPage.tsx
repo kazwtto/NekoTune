@@ -1,12 +1,17 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useTranslation } from "react-i18next"
 import { usePlayerStore } from "../stores/playerStore"
+import { useLocalStore } from "../stores/localStore"
+import { useSettingsStore } from "../stores/settingsStore"
 import SongCard from "../components/media/SongCard"
 import FavoriteSongs from "../components/media/FavoriteSongs"
 import HistorySongs from "../components/media/HistorySongs"
-import { Music, Heart, Clock } from "lucide-react"
+import LocalSongCard from "../components/media/LocalSongCard"
+import { Music, Heart, Clock, FolderOpen } from "lucide-react"
 import { usePersistedState } from "../hooks/usePersistedState"
 import { useScrollPersistence } from "../hooks/useScrollPersistence"
+import { useEffect, useRef } from "react"
+import { getDefaultMusicDir } from "../services/local"
 
 export default function LibraryPage() {
   const { t } = useTranslation()
@@ -15,12 +20,39 @@ export default function LibraryPage() {
   const currentSong = usePlayerStore((s) => s.currentSong)
   const scrollRef = useScrollPersistence("library")
 
+  const { songs: localSongs, isLoading: localLoading, scanFolder } = useLocalStore()
+  const { settings, updateSettings } = useSettingsStore()
+  const initRef = useRef(false)
+
+  useEffect(() => {
+    if (activeTab !== "local") return
+
+    const folder = settings.musicFolder
+    if (folder) {
+      if (localSongs.length === 0 && !localLoading) {
+        scanFolder(folder)
+      }
+      return
+    }
+
+    if (initRef.current) return
+    initRef.current = true
+
+    getDefaultMusicDir().then((dir) => {
+      if (dir) {
+        updateSettings({ musicFolder: dir })
+        scanFolder(dir)
+      }
+    })
+  }, [activeTab, settings.musicFolder])
+
   const uniqueSongs = Array.from(
     new Map(queue.map((s) => [s.videoId, s])).values(),
   )
 
   const tabs = [
     { id: "songs", label: t("library.songs"), icon: Music },
+    { id: "local", label: t("library.local"), icon: FolderOpen },
     { id: "favorites", label: t("common.favorites"), icon: Heart },
     { id: "play-history", label: t("library.playHistory"), icon: Clock },
   ]
@@ -90,6 +122,34 @@ export default function LibraryPage() {
                     <p className="text-xs text-muted">{t("common.searchAndPlay")}</p>
                   </div>
                 ) : null}
+              </>
+            )}
+
+            {activeTab === "local" && (
+              <>
+                {localLoading ? (
+                  <div className="mt-12 flex flex-col items-center gap-2">
+                    <FolderOpen size={28} className="text-muted animate-pulse" />
+                    <p className="text-sm text-muted">{t("library.scanning")}</p>
+                  </div>
+                ) : localSongs.length > 0 ? (
+                  <div>
+                    <h3 className="mb-2.5 text-sm font-semibold text-secondary">
+                      {t("library.localSongs")} ({localSongs.length})
+                    </h3>
+                    <div className="flex flex-col gap-1.5">
+                      {localSongs.map((song, i) => (
+                        <LocalSongCard key={song.id} song={song} index={i} />
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-12 flex flex-col items-center gap-2">
+                    <FolderOpen size={28} className="text-muted" />
+                    <p className="text-sm text-muted">{t("library.noLocalSongs")}</p>
+                    <p className="text-xs text-muted">{t("library.configureFolder")}</p>
+                  </div>
+                )}
               </>
             )}
 

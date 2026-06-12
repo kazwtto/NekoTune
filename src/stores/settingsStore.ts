@@ -14,6 +14,7 @@ const defaultSettings: AppSettings = {
   enableSkipSilence: false,
   autoPlay: false,
   autoSkipOnError: true,
+  musicFolder: "",
 }
 
 interface SettingsStore {

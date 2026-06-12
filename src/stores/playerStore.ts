@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import type { Song } from "../types/music"
-import type { PlayerState, PlayerActions, RepeatMode } from "../types/player"
+import type { PlayerState, PlayerActions, RepeatMode, HistoryEntry } from "../types/player"
 import { savePlayerState } from "../utils/playerPersist"
 
 type PlayerStore = PlayerState & PlayerActions
@@ -41,7 +41,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const state = get()
     const existingIndex = state.queue.findIndex((s) => s.videoId === song.videoId)
     const newHistory = state.currentSong
-      ? [...state.queueHistory, state.currentSong].slice(-50)
+      ? [...state.queueHistory, { song: state.currentSong, playedAt: Date.now() }].slice(-50)
       : state.queueHistory
     if (existingIndex >= 0) {
       set({ currentSong: song, queueIndex: existingIndex, isPlaying: true, isLoading: true, progress: 0, duration: song.duration || 0, queueHistory: newHistory })
@@ -97,7 +97,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       isLoading: true,
       progress: 0,
       duration: nextSong?.duration || 0,
-      queueHistory: [...state.queueHistory, state.currentSong!].slice(-50),
+      queueHistory: [...state.queueHistory, { song: state.currentSong!, playedAt: Date.now() }].slice(-50),
     })
     persist(get)
   },
@@ -110,7 +110,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
     if (state.queueHistory.length > 0) {
       const history = [...state.queueHistory]
-      const prevSong = history.pop()!
+      const prevEntry = history.pop()!
       set({
         queueHistory: history,
         queueIndex: Math.max(0, state.queueIndex - 1),

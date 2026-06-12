@@ -1,4 +1,5 @@
 mod api;
+mod local;
 mod proxy;
 mod ytdlp;
 
@@ -66,6 +67,21 @@ async fn cmd_get_lyrics(video_id: String) -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
+async fn cmd_scan_music_folder(path: String) -> Result<Vec<local::LocalSong>, String> {
+    local::scan_music_folder(&path)
+}
+
+#[tauri::command]
+async fn cmd_get_default_music_dir() -> Result<String, String> {
+    local::get_default_music_dir()
+}
+
+#[tauri::command]
+async fn cmd_get_local_file_data(path: String) -> Result<Option<String>, String> {
+    local::get_file_data(&path)
+}
+
+#[tauri::command]
 async fn cmd_debug_dump(endpoint: String, body: String) -> Result<String, String> {
     let parsed: serde_json::Value = serde_json::from_str(&body).map_err(|e| e.to_string())?;
     let resp = reqwest::Client::new()
@@ -101,6 +117,9 @@ pub fn run() {
             cmd_register_stream_url,
             cmd_get_lyrics,
             cmd_debug_dump,
+            cmd_scan_music_folder,
+            cmd_get_default_music_dir,
+            cmd_get_local_file_data,
         ])
         .run(tauri::generate_context!())
         .expect("error while running NekoTune")

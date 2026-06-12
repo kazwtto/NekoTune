@@ -83,7 +83,13 @@
     "playHistory": "Play History",
     "noSearchHistory": "No search history yet",
     "noPlayHistory": "No play history yet",
-    "clearSearchHistory": "Clear"
+    "clearSearchHistory": "Clear",
+    "local": "Local",
+    "localSongs": "Local Songs",
+    "localSongsCount": "{{count}} local songs",
+    "noLocalSongs": "No local songs found",
+    "configureFolder": "Configure your music folder in Settings",
+    "scanning": "Scanning..."
   },
   "settings": {
     "appearance": "Appearance",
@@ -129,7 +135,13 @@
     "colorBlue": "Blue",
     "colorPink": "Pink",
     "colorYellow": "Yellow",
-    "colorRed": "Red"
+    "colorRed": "Red",
+    "localMusic": "Local Music",
+    "musicFolder": "Music Folder",
+    "musicFolderDesc": "Folder to scan for local audio files",
+    "browse": "Browse...",
+    "scanNow": "Scan Now",
+    "notSet": "Not set"
   },
   "home": {
     "greeting": "Good evening",

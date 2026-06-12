@@ -1,6 +1,5 @@
 import { useSettingsStore } from "../../stores/settingsStore"
 import { useTranslation } from "react-i18next"
-import SettingsCard from "./SettingsCard"
 import RadioGroup from "./RadioGroup"
 import Toggle from "./Toggle"
 
@@ -9,9 +8,10 @@ export default function AudioSection() {
   const { settings, updateSettings } = useSettingsStore()
 
   return (
-    <div className="flex flex-col gap-5">
-      <SettingsCard title={t("settings.audioQuality")}>
-        <p className="mb-3 text-xs text-muted">{t("settings.audioQualityDesc")}</p>
+    <div className="flex flex-col gap-8 px-4">
+      <div>
+        <h3 className="mb-5 text-xs font-semibold text-secondary">{t("settings.audioQuality")}</h3>
+        <div className="ml-3">
         <RadioGroup
           value={settings.audioQuality}
           onChange={(v) => updateSettings({ audioQuality: v as "low" | "medium" | "high" })}
@@ -21,10 +21,12 @@ export default function AudioSection() {
             { value: "high", label: t("settings.high"), description: t("settings.highDesc") },
           ]}
         />
-      </SettingsCard>
+      </div>
+      </div>
 
-      <SettingsCard title={t("settings.playback")}>
-        <div className="flex flex-col divide-y divide-border">
+      <div>
+        <h3 className="mb-5 text-xs font-semibold text-secondary">{t("settings.playback")}</h3>
+        <div className="ml-3 divide-y divide-border">
           <Toggle
             label={t("settings.normalization")}
             description={t("settings.normalizationDesc")}
@@ -38,7 +40,7 @@ export default function AudioSection() {
             onChange={(v) => updateSettings({ enableSkipSilence: v })}
           />
         </div>
-      </SettingsCard>
+      </div>
     </div>
   )
 }

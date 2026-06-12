@@ -3,6 +3,7 @@ import Titlebar from "./Titlebar"
 import Sidebar from "./Sidebar"
 import PlayerBar from "./PlayerBar"
 import NowPlaying from "../player/NowPlaying"
+import SettingsPage from "../../pages/SettingsPage"
 import { useKeyboard } from "../../hooks/useKeyboard"
 import { useSettingsEffects } from "../../hooks/useSettingsEffects"
 
@@ -28,6 +29,7 @@ export default function AppShell({ children }: AppShellProps) {
       </div>
       <PlayerBar />
       <NowPlaying />
+      <SettingsPage />
     </div>
   )
 }

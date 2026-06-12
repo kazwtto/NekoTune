@@ -16,6 +16,13 @@ interface PersistedPlayerState {
   duration: number
 }
 
+function stripFileData(songs: Song[]): Song[] {
+  return songs.map(s => {
+    const { fileData, ...rest } = s
+    return rest
+  })
+}
+
 export function savePlayerState(state: Partial<PersistedPlayerState>): void {
   const current = getItem<PersistedPlayerState>(STORAGE_KEY, {
     currentSong: null,
@@ -28,7 +35,14 @@ export function savePlayerState(state: Partial<PersistedPlayerState>): void {
     progress: 0,
     duration: 0,
   })
-  setItem(STORAGE_KEY, { ...current, ...state })
+  const toSave = { ...current, ...state }
+  if (toSave.currentSong) {
+    const { fileData, ...rest } = toSave.currentSong
+    toSave.currentSong = rest
+  }
+  if (toSave.queue) toSave.queue = stripFileData(toSave.queue)
+  if (toSave.queueHistory) toSave.queueHistory = stripFileData(toSave.queueHistory)
+  setItem(STORAGE_KEY, toSave)
 }
 
 export function loadPlayerState(): PersistedPlayerState | null {

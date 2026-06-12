@@ -12,11 +12,15 @@ export function useSettingsEffects() {
 
     if (settings.theme === "pure-black") {
       root.style.setProperty("--color-bg-primary", "#000000")
-      root.style.setProperty("--color-bg-surface", "#0a0a0a")
-      root.style.setProperty("--color-bg-elevated", "#141414")
-      root.style.setProperty("--color-bg-hover", "#1f1f1f")
+      root.style.setProperty("--color-bg-surface", "#080808")
+      root.style.setProperty("--color-bg-elevated", "#111111")
+      root.style.setProperty("--color-bg-hover", "#1a1a1a")
       root.style.setProperty("--color-bg-backdrop", "#000000")
-      root.style.setProperty("--color-player", "#050505")
+      root.style.setProperty("--color-player", "#030303")
+      root.style.setProperty("--color-primary", "#e6edf3")
+      root.style.setProperty("--color-secondary", "#8b949e")
+      root.style.setProperty("--color-muted", "#484f58")
+      root.style.setProperty("--color-border", "rgba(255, 255, 255, 0.04)")
     } else if (settings.theme === "light") {
       root.style.setProperty("--color-bg-primary", "#f1f0f5")
       root.style.setProperty("--color-bg-surface", "#ffffff")

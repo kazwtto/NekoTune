@@ -44,14 +44,16 @@ export default function PlayerBar() {
           className="relative h-11 w-11 flex-shrink-0 cursor-pointer overflow-hidden rounded-lg bg-elevated transition-transform duration-150 hover:scale-105"
           onClick={() => setNowPlayingVisible(true)}
         >
-          {currentSong.albumArtUrl || currentSong.videoId ? (
+          {currentSong.isLocal ? (
+            currentSong.albumArtUrl ? (
+              <img src={currentSong.albumArtUrl} alt={currentSong.title} className="h-full w-full object-cover" />
+            ) : (
+              <div className="thumb-placeholder h-full w-full" />
+            )
+          ) : currentSong.albumArtUrl || currentSong.videoId ? (
             <img src={highResThumb(currentSong.videoId) || proxyUrl(currentSong.albumArtUrl)} alt={currentSong.title} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-muted">
-                <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
-              </svg>
-            </div>
+            <div className="thumb-placeholder h-full w-full" />
           )}
           {isLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">
