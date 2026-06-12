@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import { useUiStore } from "../stores/uiStore"
 import { useEffect, useRef, useState } from "react"
 import {
-  Palette, Headphones, Play, Globe, Info, ChevronDown, FolderOpen,
+  Palette, Headphones, Play, Globe, Info, ChevronDown, FolderOpen, Download,
 } from "lucide-react"
 
 import AppearanceSection from "../components/settings/AppearanceSection"
@@ -12,11 +12,13 @@ import PlaybackSection from "../components/settings/PlaybackSection"
 import LanguageSection from "../components/settings/LanguageSection"
 import AboutSection from "../components/settings/AboutSection"
 import LocalMusicSection from "../components/settings/LocalMusicSection"
+import DownloadSection from "../components/settings/DownloadSection"
 
 const sections = [
   { id: "appearance", labelKey: "settings.appearance", icon: Palette },
   { id: "audio", labelKey: "settings.audio", icon: Headphones },
   { id: "playback", labelKey: "settings.playback", icon: Play },
+  { id: "download", labelKey: "settings.download", icon: Download },
   { id: "localMusic", labelKey: "settings.localMusic", icon: FolderOpen },
   { id: "language", labelKey: "settings.language", icon: Globe },
   { id: "about", labelKey: "settings.about", icon: Info },
@@ -110,6 +112,7 @@ export default function SettingsPage() {
                   {s.id === "appearance" && <AppearanceSection />}
                   {s.id === "audio" && <AudioSection />}
                   {s.id === "playback" && <PlaybackSection />}
+                  {s.id === "download" && <DownloadSection />}
                   {s.id === "localMusic" && <LocalMusicSection />}
                   {s.id === "language" && <LanguageSection />}
                   {s.id === "about" && <AboutSection />}

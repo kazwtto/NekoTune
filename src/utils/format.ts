@@ -23,3 +23,17 @@ export function formatNumber(num: number): string {
   }
   return num.toString()
 }
+
+export function formatDate(timestamp: number, t: (key: string) => string): string {
+  const date = new Date(timestamp)
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+  if (days === 0) return t("common.today")
+  if (days === 1) return t("common.yesterday")
+  if (days < 7) {
+    return date.toLocaleDateString(undefined, { weekday: "long" })
+  }
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "long" })
+}

@@ -1,5 +1,6 @@
 use lofty::prelude::*;
 use lofty::read_from_path;
+use lofty::tag::ItemKey;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
@@ -14,6 +15,7 @@ const AUDIO_EXTENSIONS: &[&str] = &[
 #[serde(rename_all = "camelCase")]
 pub struct LocalSong {
     pub id: String,
+    pub video_id: Option<String>,
     pub file_path: String,
     pub title: String,
     pub artist: String,
@@ -109,6 +111,7 @@ fn parse_song_from_path(path: &Path) -> Option<LocalSong> {
     let mut album: Option<String> = None;
     let mut duration: f64 = 0.0;
     let mut cover_data: Option<String> = None;
+    let mut video_id: Option<String> = None;
 
     if let Some(ref tf) = tagged_file {
         duration = tf.properties().duration().as_secs_f64();
@@ -134,6 +137,11 @@ fn parse_song_from_path(path: &Path) -> Option<LocalSong> {
                     album = Some(al_str);
                 }
             }
+
+            // Extract custom videoId tag
+            if let Some(vid) = tag.get(&ItemKey::Unknown("NEKOTUNE_VIDEO_ID".to_string())).and_then(|i| i.value().text()) {
+                video_id = Some(vid.to_string());
+            }
         }
     }
 
@@ -141,6 +149,7 @@ fn parse_song_from_path(path: &Path) -> Option<LocalSong> {
 
     Some(LocalSong {
         id: hash_path(&file_path),
+        video_id,
         file_path,
         title,
         artist,

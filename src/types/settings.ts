@@ -11,4 +11,7 @@ export interface AppSettings {
   autoPlay: boolean
   autoSkipOnError: boolean
   musicFolder: string
+  downloadFolder: string
+  downloadFormat: "mp3" | "flac" | "ogg" | "wav"
+  downloadQuality: "low" | "medium" | "high" | "best"
 }

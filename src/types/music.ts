@@ -10,6 +10,7 @@ export interface Song {
   duration: number
   thumbnail?: string
   isLocal?: boolean
+  isVideo?: boolean
   filePath?: string
   fileData?: string
 }

@@ -226,12 +226,27 @@ export async function getExplore(): Promise<{ sections: { title: string; items: 
 
 export async function searchMusic(query: string): Promise<SearchResults> {
   const results = await invoke<RustSearchResults>("cmd_search_music", { query })
+  
+  const mappedSongs = results.songs.map(mapSong)
+  const mappedVideos = results.videos.map(mapSong)
+
+  const songs: Song[] = []
+  const videos: Song[] = [...mappedVideos]
+
+  for (const s of mappedSongs) {
+    if (s.artist?.toLowerCase().includes("video •")) {
+      videos.push(s)
+    } else {
+      songs.push(s)
+    }
+  }
+
   return {
-    songs: results.songs.map(mapSong),
+    songs,
     albums: results.albums.map(mapAlbum),
     artists: results.artists.map(mapArtist),
     playlists: results.playlists.map(mapPlaylist),
-    videos: results.videos.map(mapSong),
+    videos,
   }
 }
 

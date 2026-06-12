@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { usePlayer } from "../../hooks/usePlayer"
 import { useLibraryStore } from "../../stores/libraryStore"
-import { Play, Plus, Heart, Music } from "lucide-react"
+import { useDownloadStore } from "../../stores/downloadStore"
+import { Play, Plus, Heart, Music, Download, Check, Loader2 } from "lucide-react"
 import type { Song } from "../../types/music"
 import { formatTime } from "../../utils/format"
 import { useState } from "react"
@@ -17,12 +18,22 @@ export default function SongCard({ song, index }: SongCardProps) {
   const { t } = useTranslation()
   const { play, addToQueue } = usePlayer()
   const { favorites, toggleFavorite } = useLibraryStore()
+  const { downloadedIds, downloadingIds, download } = useDownloadStore()
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
 
   const isFav = favorites.includes(song.videoId)
+  const isDownloaded = downloadedIds.has(song.videoId)
+  const isDownloading = downloadingIds.has(song.videoId)
 
   function handlePlay() {
     play(song)
+  }
+
+  function handleDownload(e?: React.MouseEvent) {
+    e?.stopPropagation()
+    if (!isDownloaded && !isDownloading && !song.isLocal) {
+      download(song.videoId)
+    }
   }
 
   function handleContextMenu(e: React.MouseEvent) {
@@ -61,17 +72,30 @@ export default function SongCard({ song, index }: SongCardProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {isDownloading ? (
+            <Loader2 size={14} className="animate-spin text-accent" />
+          ) : isDownloaded ? (
+            <Check size={14} className="text-accent" />
+          ) : (
+            !song.isLocal && (
+              <button
+                onClick={handleDownload}
+                className="cursor-pointer p-1 text-muted opacity-0 transition-all duration-150 group-hover:opacity-100 hover:text-accent/70"
+                title={t("common.download")}
+              >
+                <Download size={14} />
+              </button>
+            )
+          )}
           {song.duration > 0 && (
-          <span className="text-xs tabular-nums text-muted">
-            {formatTime(song.duration)}
-          </span>
+            <span className="text-xs tabular-nums text-muted">{formatTime(song.duration)}</span>
           )}
           <button
             onClick={(e) => {
               e.stopPropagation()
               toggleFavorite(song.videoId)
             }}
-            className={`cursor-pointer p-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 ${isFav ? "text-accent opacity-100" : "text-muted"}`}
+            className={`cursor-pointer p-1 opacity-0 transition-all duration-150 group-hover:opacity-100 hover:text-accent/70 ${isFav ? "text-accent opacity-100" : "text-muted"}`}
           >
             <Heart size={14} fill={isFav ? "currentColor" : "none"} />
           </button>
@@ -80,7 +104,7 @@ export default function SongCard({ song, index }: SongCardProps) {
               e.stopPropagation()
               addToQueue(song)
             }}
-            className="cursor-pointer p-1 text-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100"
+            className="cursor-pointer p-1 text-muted opacity-0 transition-all duration-150 group-hover:opacity-100 hover:text-accent/70"
             title={t("player.addToQueue")}
           >
             <Plus size={14} />
@@ -99,6 +123,21 @@ export default function SongCard({ song, index }: SongCardProps) {
           <ContextMenuItem onClick={() => { toggleFavorite(song.videoId); setMenuPos(null) }}>
             <Heart size={14} fill={isFav ? "currentColor" : "none"} /> {isFav ? t("common.removeFromFavorites") : t("common.addToFavorites")}
           </ContextMenuItem>
+          {!song.isLocal && (
+            <ContextMenuItem 
+              onClick={() => { handleDownload(); setMenuPos(null) }} 
+              disabled={isDownloaded || isDownloading}
+            >
+              {isDownloading ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : isDownloaded ? (
+                <Check size={14} />
+              ) : (
+                <Download size={14} />
+              )}
+              {isDownloaded ? t("common.downloaded") : isDownloading ? t("common.downloading") : t("common.download")}
+            </ContextMenuItem>
+          )}
         </ContextMenu>
       )}
     </>

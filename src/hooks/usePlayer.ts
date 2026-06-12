@@ -98,18 +98,10 @@ export function usePlayer() {
   }, [])
 
   const playFromQueue = useCallback((index: number) => {
-    const state = usePlayerStore.getState()
-    const song = state.queue[index]
+    const store = usePlayerStore.getState()
+    const song = store.queue[index]
     if (song) {
-      usePlayerStore.setState({
-        currentSong: song,
-        queueIndex: index,
-        isPlaying: true,
-        isLoading: true,
-        progress: 0,
-        duration: song.duration || 0,
-      })
-      savePlayerState(usePlayerStore.getState())
+      store.playFromQueue(index)
       playerService.loadAndPlay(song)
     }
   }, [])
@@ -133,6 +125,10 @@ export function usePlayer() {
   const clearQueue = useCallback(() => {
     usePlayerStore.getState().clearQueue()
     playerService.stop()
+  }, [])
+
+  const clearHistory = useCallback(() => {
+    usePlayerStore.getState().clearHistory()
   }, [])
 
   const currentSong = usePlayerStore((s) => s.currentSong)
@@ -175,5 +171,6 @@ export function usePlayer() {
     toggleRepeat,
     setVolume,
     clearQueue,
+    clearHistory,
   }
 }

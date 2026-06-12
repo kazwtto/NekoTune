@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import {
   Music, Shuffle, Repeat, Heart, ListMusic, Loader2,
-  ChevronDown, Repeat1, Mic2, X,
+  ChevronDown, Repeat1, Mic2, X, Trash2,
 } from "lucide-react"
 import { usePlayer } from "../../hooks/usePlayer"
 import { useUiStore } from "../../stores/uiStore"
@@ -13,6 +13,7 @@ import { usePlayerStore } from "../../stores/playerStore"
 import { proxyUrl, highResThumb } from "../../services/proxy"
 import { formatTime } from "../../utils/format"
 import LyricsView from "../lyrics/LyricsView"
+import ConfirmationModal from "../ui/ConfirmationModal"
 
 export default function NowPlaying() {
   const { t } = useTranslation()
@@ -22,7 +23,8 @@ export default function NowPlaying() {
     currentSong, isLoading, isPlaying, progress, duration,
     shuffle, repeat,
     pause, resume, next, previous, seek,
-    toggleShuffle, toggleRepeat, volume, setVolume,
+    toggleShuffle, toggleRepeat, volume, setVolume, playFromQueue,
+    clearQueue,
   } = usePlayer()
   const { favorites, toggleFavorite } = useLibraryStore()
   const queue = usePlayerStore((s) => s.queue)
@@ -30,6 +32,7 @@ export default function NowPlaying() {
   const queueIndex = usePlayerStore((s) => s.queueIndex)
   const [showLyrics, setShowLyrics] = useState(false)
   const [showQueue, setShowQueue] = useState(false)
+  const [showConfirmClear, setShowConfirmClear] = useState(false)
 
   if (!currentSong) return null
 
@@ -111,7 +114,7 @@ export default function NowPlaying() {
             {/* Song Info */}
             <div className="px-8 pb-2">
               <h2 className="truncate text-center text-xl font-bold text-primary">
-                {currentSong.title}
+                {currentSong.title.length > 40 ? `${currentSong.title.slice(0, 40)}...` : currentSong.title}
               </h2>
               <p
                 className="mt-1 truncate text-center text-sm text-secondary hover:text-primary transition-colors duration-150"
@@ -270,12 +273,6 @@ export default function NowPlaying() {
                 <div className="flex h-full w-[360px] flex-col bg-black/20">
                   <div className="flex items-center justify-between px-4 py-3">
                     <h3 className="text-sm font-semibold text-primary">{t("common.lyrics")}</h3>
-                    <button
-                      onClick={() => setShowLyrics(false)}
-                      className="cursor-pointer rounded-full p-1 text-secondary transition-colors hover:text-primary"
-                    >
-                      <X size={16} />
-                    </button>
                   </div>
                   <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
                     <LyricsView />
@@ -296,14 +293,17 @@ export default function NowPlaying() {
                 className="flex-shrink-0 overflow-hidden border-l border-white/10"
               >
                 <div className="flex h-full w-[360px] flex-col bg-black/20">
-                  <div className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3 px-4 py-3">
                     <h3 className="text-sm font-semibold text-primary">{t("common.queue")}</h3>
-                    <button
-                      onClick={() => setShowQueue(false)}
-                      className="cursor-pointer rounded-full p-1 text-secondary transition-colors hover:text-primary"
-                    >
-                      <X size={16} />
-                    </button>
+                    {queue.length > 0 && (
+                      <button
+                        onClick={() => setShowConfirmClear(true)}
+                        className="cursor-pointer rounded-md p-1.5 text-secondary transition-colors hover:bg-white/5 hover:text-error"
+                        title={t("common.clear")}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </div>
                   <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
                     {queue.length === 0 ? (
@@ -316,7 +316,8 @@ export default function NowPlaying() {
                         {queue.map((song, i) => (
                           <div
                             key={`${song.videoId}-${i}`}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
+                            onClick={() => playFromQueue(i)}
+                            className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
                               i === queueIndex
                                 ? "bg-accent-muted"
                                 : "hover:bg-white/5"
@@ -339,6 +340,15 @@ export default function NowPlaying() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          <ConfirmationModal
+            open={showConfirmClear}
+            onClose={() => setShowConfirmClear(false)}
+            onConfirm={clearQueue}
+            title={t("common.queue")}
+            message={t("common.confirmClearQueue")}
+            confirmText={t("common.clear")}
+          />
         </motion.div>
       )}
     </AnimatePresence>

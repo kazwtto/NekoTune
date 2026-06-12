@@ -1,4 +1,5 @@
 mod api;
+mod download;
 mod local;
 mod proxy;
 mod ytdlp;
@@ -120,6 +121,12 @@ pub fn run() {
             cmd_scan_music_folder,
             cmd_get_default_music_dir,
             cmd_get_local_file_data,
+            download::cmd_download_song,
+            download::cmd_is_downloaded,
+            download::cmd_cancel_download,
+            download::cmd_remove_download,
+            download::cmd_get_downloaded_file_path,
+            download::cmd_get_all_downloaded_ids,
         ])
         .run(tauri::generate_context!())
         .expect("error while running NekoTune")

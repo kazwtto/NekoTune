@@ -34,10 +34,10 @@ export default function SearchPage() {
   const tabs = [
     { id: "all", label: t("search.all"), count: total, icon: LayoutGrid },
     { id: "songs", label: t("search.songs"), count: results?.songs.length || 0, icon: Music },
+    { id: "videos", label: t("search.videos"), count: results?.videos.length || 0, icon: Video },
     { id: "albums", label: t("search.albums"), count: results?.albums.length || 0, icon: Album },
     { id: "artists", label: t("search.artists"), count: results?.artists.length || 0, icon: User },
     { id: "playlists", label: t("search.playlists"), count: results?.playlists.length || 0, icon: ListMusic },
-    { id: "videos", label: t("search.videos"), count: results?.videos.length || 0, icon: Video },
   ]
 
   return (

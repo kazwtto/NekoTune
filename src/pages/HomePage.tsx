@@ -48,8 +48,8 @@ function TagCarousel({ tags, onRefresh, refreshing }: { tags: MoodGenre[]; onRef
             }}
             className="flex-shrink-0 cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all duration-150 hover:brightness-110"
             style={{
-              backgroundColor: tag.color || "#8b5cf6",
-              color: "#fff",
+              backgroundColor: tag.color || "var(--color-accent)",
+              color: "var(--color-primary)",
             }}
           >
             {tag.title}

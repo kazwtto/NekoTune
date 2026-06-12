@@ -45,6 +45,18 @@ export function useQueue() {
     [store],
   )
 
+  const playFromQueue = useCallback(
+    (index: number) => {
+      const state = usePlayerStore.getState()
+      const song = state.queue[index]
+      if (song) {
+        state.playFromQueue(index)
+        playerService.loadAndPlay(song)
+      }
+    },
+    [],
+  )
+
   return {
     queue: store.queue,
     queueIndex: store.queueIndex,
@@ -54,6 +66,7 @@ export function useQueue() {
     playLater,
     remove,
     move,
+    playFromQueue,
     clearQueue: store.clearQueue,
   }
 }

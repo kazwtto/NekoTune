@@ -55,16 +55,41 @@ class PlayerService {
         }
       } else {
         if (!song.videoId) return
-        const { getStreamUrl: fetchStream } = await import("./innertube")
-        const streamData = await fetchStream(song.videoId)
-        if (gen !== this.loadGeneration) return
-        if (!streamData) {
-          this.patch({ isLoading: false, isPlaying: false })
-          if (this.settings.autoSkipOnError) this.store.next()
-          return
+
+        // Check if downloaded
+        try {
+          const { invoke } = await import("@tauri-apps/api/core")
+          const { downloadFolder } = useSettingsStore.getState().settings
+          const isDown = await invoke<boolean>("cmd_is_downloaded", { videoId: song.videoId, downloadFolder })
+
+          if (isDown) {
+            const filePath = await invoke<string>("cmd_get_downloaded_file_path", {
+              videoId: song.videoId,
+              downloadFolder,
+            })
+            audioSrc = await invoke<string>("cmd_get_local_file_data", { path: filePath })
+            if (audioSrc) {
+              song = { ...song, isLocal: true, filePath }
+              this._currentSong = song
+              this.patch({ currentSong: song })
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to check or load downloaded file, falling back to stream", e)
         }
-        audioSrc = proxyUrl(streamData.url)
-        durationFromYtdlp = streamData.duration
+
+        if (!audioSrc) {
+          const { getStreamUrl: fetchStream } = await import("./innertube")
+          const streamData = await fetchStream(song.videoId)
+          if (gen !== this.loadGeneration) return
+          if (!streamData) {
+            this.patch({ isLoading: false, isPlaying: false })
+            if (this.settings.autoSkipOnError) this.store.next()
+            return
+          }
+          audioSrc = proxyUrl(streamData.url)
+          durationFromYtdlp = streamData.duration
+        }
       }
 
       if (gen !== this.loadGeneration) return

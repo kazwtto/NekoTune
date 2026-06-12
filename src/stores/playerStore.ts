@@ -144,6 +144,22 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     persist(get)
   },
 
+  playFromQueue: (index: number) => {
+    const state = get()
+    const song = state.queue[index]
+    if (song) {
+      set({
+        currentSong: song,
+        queueIndex: index,
+        isPlaying: true,
+        isLoading: true,
+        progress: 0,
+        duration: song.duration || 0,
+      })
+      persist(get)
+    }
+  },
+
   addToQueue: (song: Song) => {
     const state = get()
     set({ queue: [...state.queue, song] })
@@ -181,7 +197,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     persist(get)
   },
 
-  clearQueue: () =>
+  clearQueue: () => {
     set({
       queue: [],
       queueIndex: -1,
@@ -190,8 +206,14 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       isLoading: false,
       progress: 0,
       duration: 0,
-      queueHistory: [],
-    }),
+    })
+    persist(get)
+  },
+
+  clearHistory: () => {
+    set({ queueHistory: [] })
+    persist(get)
+  },
 
   setProgress: (progress: number) => set({ progress }),
   setDuration: (duration: number) => set({ duration }),

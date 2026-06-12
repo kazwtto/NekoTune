@@ -26,11 +26,11 @@ export default function Modal({ open, onClose, title, children, width = 380 }: M
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="overflow-hidden rounded-xl border border-border bg-elevated"
+            className="overflow-hidden rounded-xl border border-white/[0.08] bg-bg-elevated shadow-2xl backdrop-blur-xl ring-1 ring-black/20"
             style={{ width, maxHeight: "80vh" }}
           >
             {title && (
-              <div className="flex items-center justify-between border-b border-border px-5 py-4">
+              <div className="hidden items-center justify-between border-b border-white/[0.08] px-5 py-4">
                 <span className="text-sm font-semibold text-primary">{title}</span>
                 <button
                   onClick={onClose}

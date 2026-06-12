@@ -7,7 +7,8 @@ import SongCard from "../components/media/SongCard"
 import FavoriteSongs from "../components/media/FavoriteSongs"
 import HistorySongs from "../components/media/HistorySongs"
 import LocalSongCard from "../components/media/LocalSongCard"
-import { Music, Heart, Clock, FolderOpen } from "lucide-react"
+import DownloadedSongs from "../components/media/DownloadedSongs"
+import { Music, Heart, FolderOpen, Download } from "lucide-react"
 import { usePersistedState } from "../hooks/usePersistedState"
 import { useScrollPersistence } from "../hooks/useScrollPersistence"
 import { useEffect, useRef } from "react"
@@ -53,8 +54,8 @@ export default function LibraryPage() {
   const tabs = [
     { id: "songs", label: t("library.songs"), icon: Music },
     { id: "local", label: t("library.local"), icon: FolderOpen },
+    { id: "downloaded", label: t("library.downloaded"), icon: Download },
     { id: "favorites", label: t("common.favorites"), icon: Heart },
-    { id: "play-history", label: t("library.playHistory"), icon: Clock },
   ]
 
   return (
@@ -111,9 +112,10 @@ export default function LibraryPage() {
                     </h3>
                     <div className="flex flex-col gap-1.5">
                       {uniqueSongs.map((song) => (
-                        <SongCard key={song.videoId} song={song} />
+                        <SongCard song={song} />
                       ))}
                     </div>
+
                   </div>
                 ) : !currentSong ? (
                   <div className="mt-12 flex flex-col items-center gap-2">
@@ -153,8 +155,9 @@ export default function LibraryPage() {
               </>
             )}
 
+            {activeTab === "downloaded" && <DownloadedSongs />}
+
             {activeTab === "favorites" && <FavoriteSongs />}
-            {activeTab === "play-history" && <HistorySongs />}
           </motion.div>
         </AnimatePresence>
       </div>

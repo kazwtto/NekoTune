@@ -15,6 +15,9 @@ const defaultSettings: AppSettings = {
   autoPlay: false,
   autoSkipOnError: true,
   musicFolder: "",
+  downloadFolder: "",
+  downloadFormat: "mp3",
+  downloadQuality: "high",
 }
 
 interface SettingsStore {

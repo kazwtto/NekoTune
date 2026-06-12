@@ -1,9 +1,15 @@
 import { useEffect } from "react"
 import { useSettingsStore } from "../stores/settingsStore"
+import { useDownloadStore } from "../stores/downloadStore"
 import { changeLanguage } from "../i18n"
 
 export function useSettingsEffects() {
   const settings = useSettingsStore((s) => s.settings)
+  const loadDownloaded = useDownloadStore((s) => s.loadAllDownloadedIds)
+
+  useEffect(() => {
+    loadDownloaded()
+  }, [settings.downloadFolder])
 
   useEffect(() => {
     const root = document.documentElement

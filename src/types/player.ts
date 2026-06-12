@@ -35,10 +35,12 @@ export interface PlayerActions {
   setVolume: (vol: number) => void
   toggleShuffle: () => void
   toggleRepeat: () => void
+  playFromQueue: (index: number) => void
   addToQueue: (song: Song) => void
   removeFromQueue: (index: number) => void
   reorderQueue: (from: number, to: number) => void
   clearQueue: () => void
+  clearHistory: () => void
   setProgress: (progress: number) => void
   setDuration: (duration: number) => void
   setIsPlaying: (isPlaying: boolean) => void
