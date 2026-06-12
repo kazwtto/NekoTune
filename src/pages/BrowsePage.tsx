@@ -35,7 +35,13 @@ function SongRow({ songs }: { songs: Song[] }) {
           }`}
           onClick={() => play(song)}
         >
-          {song.videoId ? (
+          {song.isLocal ? (
+            song.albumArtUrl ? (
+              <img src={song.albumArtUrl} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />
+            ) : (
+              <div className="thumb-placeholder h-12 w-12" />
+            )
+          ) : song.videoId ? (
             <img
               src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)}
               alt=""
