@@ -21,6 +21,20 @@
         "resizable": true,
         "fullscreen": false,
         "decorations": false,
+        "center": true,
+        "additionalBrowserArgs": "--disable-features=msCompatibilityQuery"
+      },
+      {
+        "label": "floating",
+        "title": "",
+        "width": 300,
+        "height": 200,
+        "resizable": true,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
         "additionalBrowserArgs": "--disable-features=msCompatibilityQuery"
       }
     ],

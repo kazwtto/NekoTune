@@ -6,6 +6,41 @@ mod proxy;
 mod ytdlp;
 
 use api::innertube::*;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::PathBuf;
+use tauri::Manager;
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct FloatingState {
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+}
+
+fn floating_state_path() -> PathBuf {
+    let dir = dirs_next::config_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("nekotune");
+    fs::create_dir_all(&dir).ok();
+    dir.join("floating_state.json")
+}
+
+fn load_floating_state() -> FloatingState {
+    let path = floating_state_path();
+    fs::read_to_string(&path)
+        .ok()
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn save_floating_state(state: &FloatingState) {
+    let path = floating_state_path();
+    if let Ok(json) = serde_json::to_string(state) {
+        fs::write(path, json).ok();
+    }
+}
 
 #[tauri::command]
 async fn cmd_get_home_feed() -> Result<HomeFeedData, String> {
@@ -118,6 +153,9 @@ async fn cmd_poll_login_cookies(app: tauri::AppHandle) -> Result<Option<String>,
 fn cmd_minimize_to_tray(app: tauri::AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
+        if let Some(floating) = app.get_webview_window("floating") {
+            let _ = floating.show();
+        }
         if app.tray_by_id("main_tray").is_none() {
             let _ = tauri::tray::TrayIconBuilder::with_id("main_tray")
                 .icon(app.default_window_icon().unwrap().clone())
@@ -128,8 +166,11 @@ fn cmd_minimize_to_tray(app: tauri::AppHandle) -> Result<(), String> {
                         if let Some(window) = app_handle.get_webview_window("main") {
                             let _ = window.show();
                             let _ = window.set_focus();
-                            app_handle.remove_tray_by_id("main_tray");
                         }
+                        if let Some(floating) = app_handle.get_webview_window("floating") {
+                            let _ = floating.hide();
+                        }
+                        app_handle.remove_tray_by_id("main_tray");
                     }
                 })
                 .build(&app);
@@ -137,8 +178,6 @@ fn cmd_minimize_to_tray(app: tauri::AppHandle) -> Result<(), String> {
     }
     Ok(())
 }
-
-use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -150,6 +189,61 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .register_asynchronous_uri_scheme_protocol("nekotune", proxy::handle_protocol_request)
+        .setup(|app| {
+            if let Some(floating) = app.get_webview_window("floating") {
+                let _ = floating.hide();
+
+                let state = load_floating_state();
+                if state.x != 0.0 || state.y != 0.0 {
+                    let _ = floating.set_position(tauri::Position::Physical(
+                        tauri::PhysicalPosition {
+                            x: state.x as i32,
+                            y: state.y as i32,
+                        },
+                    ));
+                }
+                if state.width != 0.0 && state.height != 0.0 {
+                    let _ = floating.set_size(tauri::Size::Physical(
+                        tauri::PhysicalSize {
+                            width: state.width as u32,
+                            height: state.height as u32,
+                        },
+                    ));
+                }
+
+                floating.on_window_event(move |event| {
+                    match event {
+                        tauri::WindowEvent::Moved(pos) => {
+                            let state = FloatingState {
+                                x: pos.x as f64,
+                                y: pos.y as f64,
+                                ..load_floating_state()
+                            };
+                            save_floating_state(&state);
+                        }
+                        tauri::WindowEvent::Resized(size) => {
+                            let state = FloatingState {
+                                width: size.width as f64,
+                                height: size.height as f64,
+                                ..load_floating_state()
+                            };
+                            save_floating_state(&state);
+                        }
+                        _ => {}
+                    }
+                });
+            }
+
+            let main_window = app.get_webview_window("main").unwrap();
+            let floating_clone = app.get_webview_window("floating").unwrap();
+            main_window.on_window_event(move |event| {
+                if let tauri::WindowEvent::CloseRequested { .. } = event {
+                    let _ = floating_clone.destroy();
+                }
+            });
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             cmd_get_home_feed,
             cmd_get_explore,
