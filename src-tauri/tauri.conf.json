@@ -28,7 +28,7 @@
         "label": "floating",
         "title": "",
         "width": 380,
-        "height": 50,
+        "height": 60,
         "minWidth": 100,
         "minHeight": 13,
         "resizable": true,

@@ -201,7 +201,7 @@ pub fn run() {
                     ));
                 }
 
-                let aspect = 380.0 / 50.0;
+                let aspect = 380.0 / 60.0;
 
                 let floating_clone = floating.clone();
                 floating.on_window_event(move |event| {
@@ -216,13 +216,15 @@ pub fn run() {
                         }
                         tauri::WindowEvent::Resized(size) => {
                             let w = size.width as f64;
-                            let h = w / aspect;
-                            let _ = floating_clone.set_size(tauri::Size::Physical(
-                                tauri::PhysicalSize {
-                                    width: w as u32,
-                                    height: h as u32,
-                                },
-                            ));
+                            let expected_h = (w / aspect) as u32;
+                            if size.height != expected_h {
+                                let _ = floating_clone.set_size(tauri::Size::Physical(
+                                    tauri::PhysicalSize {
+                                        width: size.width,
+                                        height: expected_h,
+                                    },
+                                ));
+                            }
                         }
                         _ => {}
                     }

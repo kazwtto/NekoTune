@@ -45,9 +45,15 @@ export default function App() {
   useEffect(() => {
     if (isFloating) return
 
-    const unlisten = listen<{ action: string }>("player-command", ({ payload }) => {
+    const unlisten = listen<{ action: string; time?: number }>("player-command", ({ payload }) => {
       const state = usePlayerStore.getState()
       switch (payload.action) {
+        case "seek":
+          if (payload.time !== undefined) {
+            playerService.seek(payload.time)
+            usePlayerStore.setState({ progress: payload.time })
+          }
+          break
         case "toggle-play":
           state.isPlaying ? (usePlayerStore.getState().pause(), playerService.pause()) : (usePlayerStore.getState().resume(), playerService.play())
           break
