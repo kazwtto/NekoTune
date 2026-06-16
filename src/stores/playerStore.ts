@@ -1,9 +1,32 @@
 import { create } from "zustand"
+import { emit } from "@tauri-apps/api/event"
 import type { Song } from "../types/music"
 import type { PlayerState, PlayerActions, RepeatMode } from "../types/player"
 import { savePlayerState } from "../utils/playerPersist"
 
 type PlayerStore = PlayerState & PlayerActions
+
+let isSyncing = false
+
+export function setIsSyncing(val: boolean) {
+  isSyncing = val
+}
+
+function emitSync(get: () => PlayerStore) {
+  if (isSyncing) return
+  const s = get()
+  emit("player-state-changed", {
+    currentSong: s.currentSong,
+    isPlaying: s.isPlaying,
+    isLoading: s.isLoading,
+    progress: s.progress,
+    duration: s.duration,
+    shuffle: s.shuffle,
+    repeat: s.repeat,
+    queue: s.queue,
+    queueIndex: s.queueIndex,
+  })
+}
 
 function persist(get: () => PlayerStore) {
   const s = get()
@@ -18,6 +41,7 @@ function persist(get: () => PlayerStore) {
     progress: s.progress,
     duration: s.duration,
   })
+  emitSync(get)
 }
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({

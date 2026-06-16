@@ -1,16 +1,18 @@
 import { usePlayer } from "../../hooks/usePlayer"
 import { formatTime } from "../../utils/format"
 
-export default function ProgressBar() {
+export default function ProgressBar({ showTime = true }: { showTime?: boolean }) {
   const { progress, duration, seek } = usePlayer()
 
   const pct = duration > 0 ? (progress / duration) * 100 : 0
 
   return (
     <div className="flex w-full items-center gap-3">
-      <span className="min-w-9 text-right text-xs tabular-nums text-muted">
-        {formatTime(progress)}
-      </span>
+      {showTime && (
+        <span className="min-w-9 text-right text-xs tabular-nums text-muted">
+          {formatTime(progress)}
+        </span>
+      )}
       <div
         className="group relative h-1 flex-1 cursor-pointer rounded-full bg-white/10"
         onClick={(e) => {
@@ -29,9 +31,11 @@ export default function ProgressBar() {
           style={{ left: `${pct}%` }}
         />
       </div>
-      <span className="min-w-9 text-xs tabular-nums text-muted">
-        {formatTime(duration)}
-      </span>
+      {showTime && (
+        <span className="min-w-9 text-xs tabular-nums text-muted">
+          {formatTime(duration)}
+        </span>
+      )}
     </div>
   )
 }

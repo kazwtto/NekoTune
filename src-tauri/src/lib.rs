@@ -15,8 +15,6 @@ use tauri::Manager;
 struct FloatingState {
     x: f64,
     y: f64,
-    width: f64,
-    height: f64,
 }
 
 fn floating_state_path() -> PathBuf {
@@ -202,15 +200,10 @@ pub fn run() {
                         },
                     ));
                 }
-                if state.width != 0.0 && state.height != 0.0 {
-                    let _ = floating.set_size(tauri::Size::Physical(
-                        tauri::PhysicalSize {
-                            width: state.width as u32,
-                            height: state.height as u32,
-                        },
-                    ));
-                }
 
+                let aspect = 380.0 / 50.0;
+
+                let floating_clone = floating.clone();
                 floating.on_window_event(move |event| {
                     match event {
                         tauri::WindowEvent::Moved(pos) => {
@@ -222,12 +215,14 @@ pub fn run() {
                             save_floating_state(&state);
                         }
                         tauri::WindowEvent::Resized(size) => {
-                            let state = FloatingState {
-                                width: size.width as f64,
-                                height: size.height as f64,
-                                ..load_floating_state()
-                            };
-                            save_floating_state(&state);
+                            let w = size.width as f64;
+                            let h = w / aspect;
+                            let _ = floating_clone.set_size(tauri::Size::Physical(
+                                tauri::PhysicalSize {
+                                    width: w as u32,
+                                    height: h as u32,
+                                },
+                            ));
                         }
                         _ => {}
                     }
