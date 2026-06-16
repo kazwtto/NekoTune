@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next"
 import { useUiStore } from "../stores/uiStore"
 import { useEffect, useRef, useState } from "react"
 import {
-  Palette, Headphones, Play, Globe, Info, ChevronDown, FolderOpen, Download,
+  Palette, Headphones, Play, Globe, Info, ChevronDown, FolderOpen, Download, Database, UserCircle,
 } from "lucide-react"
 
 import AppearanceSection from "../components/settings/AppearanceSection"
@@ -13,13 +13,17 @@ import LanguageSection from "../components/settings/LanguageSection"
 import AboutSection from "../components/settings/AboutSection"
 import LocalMusicSection from "../components/settings/LocalMusicSection"
 import DownloadSection from "../components/settings/DownloadSection"
+import CacheSection from "../components/settings/CacheSection"
+import AccountSection from "../components/settings/AccountSection"
 
 const sections = [
   { id: "appearance", labelKey: "settings.appearance", icon: Palette },
   { id: "audio", labelKey: "settings.audio", icon: Headphones },
   { id: "playback", labelKey: "settings.playback", icon: Play },
   { id: "download", labelKey: "settings.download", icon: Download },
+  { id: "cache", labelKey: "settings.cache", icon: Database },
   { id: "localMusic", labelKey: "settings.localMusic", icon: FolderOpen },
+  { id: "account", labelKey: "settings.account", icon: UserCircle },
   { id: "language", labelKey: "settings.language", icon: Globe },
   { id: "about", labelKey: "settings.about", icon: Info },
 ]
@@ -64,7 +68,8 @@ export default function SettingsPage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 10 }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className="fixed inset-0 z-40 flex gap-6 bg-bg-primary"
+          className="fixed inset-0 z-40 flex gap-6"
+          style={{ background: "var(--color-bg-primary)" }}
         >
           <aside className="w-52 flex-shrink-0 flex flex-col pt-5 pl-6">
             <div className="flex items-center gap-3 mb-5">
@@ -113,7 +118,9 @@ export default function SettingsPage() {
                   {s.id === "audio" && <AudioSection />}
                   {s.id === "playback" && <PlaybackSection />}
                   {s.id === "download" && <DownloadSection />}
+                  {s.id === "cache" && <CacheSection />}
                   {s.id === "localMusic" && <LocalMusicSection />}
+                  {s.id === "account" && <AccountSection />}
                   {s.id === "language" && <LanguageSection />}
                   {s.id === "about" && <AboutSection />}
                 </div>

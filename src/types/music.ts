@@ -58,6 +58,7 @@ export interface SearchResults {
 
 export interface LocalSong {
   id: string
+  videoId?: string
   filePath: string
   title: string
   artist: string

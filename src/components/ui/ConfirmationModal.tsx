@@ -1,3 +1,4 @@
+import React from "react"
 import Modal from "./Modal"
 import Button from "./Button"
 import { useTranslation } from "react-i18next"
@@ -5,12 +6,13 @@ import { useTranslation } from "react-i18next"
 interface ConfirmationModalProps {
   open: boolean
   onClose: () => void
-  onConfirm: () => void
+  onConfirm?: () => void
   title: string
   message: string
   confirmText?: string
   cancelText?: string
   variant?: "danger" | "primary"
+  actions?: React.ReactNode
 }
 
 export default function ConfirmationModal({
@@ -22,6 +24,7 @@ export default function ConfirmationModal({
   confirmText,
   cancelText,
   variant = "danger",
+  actions,
 }: ConfirmationModalProps) {
   const { t } = useTranslation()
 
@@ -30,19 +33,27 @@ export default function ConfirmationModal({
       <div className="flex flex-col gap-5">
         <p className="text-sm leading-relaxed text-secondary">{message}</p>
         <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose} className="text-xs">
-            {cancelText || t("common.cancel")}
-          </Button>
-          <Button
-            variant={variant === "danger" ? "primary" : variant}
-            onClick={() => {
-              onConfirm()
-              onClose()
-            }}
-            className={`text-xs ${variant === "danger" ? "bg-error hover:bg-error/90" : ""}`}
-          >
-            {confirmText || t("common.confirm")}
-          </Button>
+          {actions ? (
+            actions
+          ) : (
+            <>
+              <Button variant="ghost" onClick={onClose} className="text-xs">
+                {cancelText || t("common.cancel")}
+              </Button>
+              {onConfirm && (
+                <Button
+                  variant={variant === "danger" ? "primary" : variant}
+                  onClick={() => {
+                    onConfirm()
+                    onClose()
+                  }}
+                  className={`text-xs ${variant === "danger" ? "bg-error hover:bg-error/90" : ""}`}
+                >
+                  {confirmText || t("common.confirm")}
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
     </Modal>

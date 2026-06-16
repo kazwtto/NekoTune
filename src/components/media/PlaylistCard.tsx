@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import type { Playlist } from "../../types/music"
-import { ListMusic } from "lucide-react"
 import { proxyUrl } from "../../services/proxy"
 
 interface PlaylistCardProps {

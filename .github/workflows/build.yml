@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [windows-latest]
+        platform: [macos-latest, ubuntu-22.04, windows-latest]
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -49,8 +49,24 @@ jobs:
           releaseDraft: true
           prerelease: false
 
-      - name: Upload Portable Executable
+      - name: Upload Portable Executable (Windows)
+        if: matrix.platform == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
-          name: NekoTune-Portable
+          name: NekoTune-Windows-Portable
           path: src-tauri/target/release/NekoTune.exe
+
+      - name: Upload Portable Executable (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: NekoTune-Linux-AppImage
+          path: src-tauri/target/release/bundle/appimage/*.AppImage
+
+      - name: Upload Portable Executable (macOS)
+        if: matrix.platform == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: NekoTune-macOS-APP
+          path: src-tauri/target/release/bundle/macos/*.app
+

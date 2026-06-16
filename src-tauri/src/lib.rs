@@ -1,6 +1,7 @@
 mod api;
 mod download;
 mod local;
+mod login;
 mod proxy;
 mod ytdlp;
 
@@ -95,6 +96,50 @@ async fn cmd_debug_dump(endpoint: String, body: String) -> Result<String, String
     Ok(text)
 }
 
+#[tauri::command]
+fn cmd_set_account_cookie(cookie: String) {
+    api::innertube::set_account_cookie(&cookie);
+}
+
+#[tauri::command]
+fn cmd_open_login_window(app: tauri::AppHandle) -> Result<(), String> {
+    login::create_login_window(&app)
+}
+
+#[tauri::command]
+async fn cmd_poll_login_cookies(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    // Spawn on a separate task so cookies_for_url doesn't deadlock on Windows
+    tauri::async_runtime::spawn(async move { login::read_login_cookies(&app).await })
+        .await
+        .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+fn cmd_minimize_to_tray(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+        if app.tray_by_id("main_tray").is_none() {
+            let _ = tauri::tray::TrayIconBuilder::with_id("main_tray")
+                .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("NekoTune")
+                .on_tray_icon_event(|tray, event| {
+                    if let tauri::tray::TrayIconEvent::Click { .. } = event {
+                        let app_handle = tray.app_handle();
+                        if let Some(window) = app_handle.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                            app_handle.remove_tray_by_id("main_tray");
+                        }
+                    }
+                })
+                .build(&app);
+        }
+    }
+    Ok(())
+}
+
+use tauri::Manager;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -118,6 +163,9 @@ pub fn run() {
             cmd_register_stream_url,
             cmd_get_lyrics,
             cmd_debug_dump,
+            cmd_set_account_cookie,
+            cmd_open_login_window,
+            cmd_poll_login_cookies,
             cmd_scan_music_folder,
             cmd_get_default_music_dir,
             cmd_get_local_file_data,
@@ -127,6 +175,7 @@ pub fn run() {
             download::cmd_remove_download,
             download::cmd_get_downloaded_file_path,
             download::cmd_get_all_downloaded_ids,
+            cmd_minimize_to_tray,
         ])
         .run(tauri::generate_context!())
         .expect("error while running NekoTune")

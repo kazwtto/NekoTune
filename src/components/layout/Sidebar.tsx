@@ -9,6 +9,7 @@ import {
   ListMusic,
   Heart,
   Clock,
+  Plus
 } from "lucide-react"
 
 const navItems = [
@@ -67,6 +68,16 @@ export default function Sidebar() {
             </NavLink>
           )
         })}
+      </div>
+
+      <div className={`mt-6 px-2 flex flex-col gap-1 transition-opacity duration-300 ${collapsed ? "opacity-0 pointer-events-none hidden" : "opacity-100"}`}>
+        <div className="flex items-center justify-between px-3 mb-1">
+          <span className="text-[11px] font-bold text-secondary tracking-widest">PLAYLISTS</span>
+          <button className="text-secondary hover:text-white transition-colors">
+            <Plus size={16} />
+          </button>
+        </div>
+        {/* Playlists section ready for future data */}
       </div>
     </nav>
   )

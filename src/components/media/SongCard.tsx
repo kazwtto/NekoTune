@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next"
 import { usePlayer } from "../../hooks/usePlayer"
 import { useLibraryStore } from "../../stores/libraryStore"
 import { useDownloadStore } from "../../stores/downloadStore"
-import { Play, Plus, Heart, Music, Download, Check, Loader2 } from "lucide-react"
+import { Play, Plus, Heart, Download, Check, Loader2, Music } from "lucide-react"
 import type { Song } from "../../types/music"
 import { formatTime } from "../../utils/format"
 import { useState } from "react"
@@ -12,9 +12,12 @@ import { proxyUrl, highResThumb } from "../../services/proxy"
 interface SongCardProps {
   song: Song
   index?: number
+  variant?: "list" | "compact"
+  isActive?: boolean
+  onClick?: () => void
 }
 
-export default function SongCard({ song, index }: SongCardProps) {
+export default function SongCard({ song, index, variant = "list", isActive, onClick }: SongCardProps) {
   const { t } = useTranslation()
   const { play, addToQueue } = usePlayer()
   const { favorites, toggleFavorite } = useLibraryStore()
@@ -24,9 +27,12 @@ export default function SongCard({ song, index }: SongCardProps) {
   const isFav = favorites.includes(song.videoId)
   const isDownloaded = downloadedIds.has(song.videoId)
   const isDownloading = downloadingIds.has(song.videoId)
+  
+  const isCompact = variant === "compact"
 
   function handlePlay() {
-    play(song)
+    if (onClick) onClick()
+    else play(song)
   }
 
   function handleDownload(e?: React.MouseEvent) {
@@ -44,33 +50,49 @@ export default function SongCard({ song, index }: SongCardProps) {
   return (
     <>
       <div
-        className="group flex cursor-pointer items-center gap-3 rounded-lg bg-surface px-3 py-2.5 transition-all duration-150 hover:bg-bg-hover"
+        className={`group flex cursor-pointer items-center gap-3 transition-all duration-150 hover:bg-bg-hover ${
+          isCompact
+            ? "min-w-[280px] max-w-[280px] rounded-xl p-2.5"
+            : "w-full rounded-lg bg-surface px-3 py-2.5"
+        } ${isActive ? "bg-accent/10 ring-1 ring-accent/20" : ""}`}
         onClick={handlePlay}
         onContextMenu={handleContextMenu}
       >
-        {index !== undefined && (
+        {!isCompact && index !== undefined && (
           <span className="w-5 text-center text-xs text-muted">
             {index + 1}
           </span>
         )}
-        {song.isLocal ? (
-          song.albumArtUrl ? (
-            <img src={song.albumArtUrl} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg object-cover" />
+        
+        <div className={`relative flex-shrink-0 ${isCompact ? "h-12 w-12" : "h-10 w-10"}`}>
+          {song.isLocal ? (
+            song.albumArtUrl ? (
+              <img src={song.albumArtUrl} alt="" className="h-full w-full rounded-lg object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-lg bg-bg-elevated">
+                <Music size={16} className="text-muted" />
+              </div>
+            )
+          ) : song.albumArtUrl || song.videoId ? (
+            <img src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)} alt="" className="h-full w-full rounded-lg object-cover" />
           ) : (
-            <div className="thumb-placeholder h-10 w-10" />
-          )
-        ) : song.albumArtUrl || song.videoId ? (
-          <img src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)} alt="" className="h-10 w-10 flex-shrink-0 rounded-lg object-cover" />
-        ) : (
-          <div className="thumb-placeholder h-10 w-10" />
-        )}
+            <div className="flex h-full w-full items-center justify-center rounded-lg bg-bg-elevated">
+              <Music size={16} className="text-muted" />
+            </div>
+          )}
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/40 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+            <Play size={16} fill="white" className="text-white" />
+          </div>
+        </div>
+
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-primary">{song.title}</p>
+          <p className={`truncate text-sm font-medium ${isActive ? "text-accent" : "text-primary"}`}>{song.title}</p>
           <p className="truncate text-xs text-secondary">
             {song.artist}
-            {song.album && <span> · {song.album}</span>}
+            {!isCompact && song.album && <span> · {song.album}</span>}
           </p>
         </div>
+
         <div className="flex items-center gap-2">
           {isDownloading ? (
             <Loader2 size={14} className="animate-spin text-accent" />
@@ -87,7 +109,7 @@ export default function SongCard({ song, index }: SongCardProps) {
               </button>
             )
           )}
-          {song.duration > 0 && (
+          {!isCompact && song.duration > 0 && (
             <span className="text-xs tabular-nums text-muted">{formatTime(song.duration)}</span>
           )}
           <button

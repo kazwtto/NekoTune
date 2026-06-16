@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Routes, Route } from "react-router-dom"
 import { AnimatePresence } from "framer-motion"
 import AppShell from "./components/layout/AppShell"
@@ -14,7 +15,18 @@ import AlbumPage from "./pages/AlbumPage"
 import LyricsPage from "./pages/LyricsPage"
 import BrowsePage from "./pages/BrowsePage"
 
+import { invoke } from "@tauri-apps/api/core"
+import { useAccountStore } from "./stores/accountStore"
+
 export default function App() {
+  const account = useAccountStore((s) => s.account)
+
+  useEffect(() => {
+    if (account?.cookie) {
+      invoke("cmd_set_account_cookie", { cookie: account.cookie }).catch(console.error)
+    }
+  }, [account?.cookie])
+
   return (
     <AppShell>
       <AnimatePresence mode="wait">

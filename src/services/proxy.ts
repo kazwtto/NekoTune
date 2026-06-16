@@ -7,5 +7,5 @@ export function proxyUrl(url: string | undefined | null): string | undefined {
 
 export function highResThumb(videoId: string | undefined | null): string | undefined {
   if (!videoId) return undefined
-  return proxyUrl(`https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`)
+  return `https://i.ytimg.com/vi/${videoId}/maxresdefault.jpg`
 }

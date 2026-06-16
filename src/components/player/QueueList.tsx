@@ -1,5 +1,5 @@
 import { useQueue } from "../../hooks/useQueue"
-import { GripVertical, Trash2, Music } from "lucide-react"
+import { GripVertical, Trash2 } from "lucide-react"
 import { formatTime } from "../../utils/format"
 import { proxyUrl } from "../../services/proxy"
 

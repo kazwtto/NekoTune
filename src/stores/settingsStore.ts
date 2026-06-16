@@ -6,7 +6,8 @@ const STORAGE_KEY = "nekotune-settings"
 
 const defaultSettings: AppSettings = {
   theme: "dark",
-  accentColor: "#7c6aef",
+  accentColor: "#c6a0f6",
+  hideScrollbar: true,
   language: "en-US",
   audioQuality: "medium",
   crossfade: 3,
@@ -18,7 +19,18 @@ const defaultSettings: AppSettings = {
   downloadFolder: "",
   downloadFormat: "mp3",
   downloadQuality: "high",
+  streamCache: {
+    enabled: true,
+    ttlMinutes: 120,
+    maxEntries: 50,
+  },
+  prefetchCache: {
+    enabled: true,
+    prefetchCount: 2,
+    delayMs: 2000,
+  },
 }
+
 
 interface SettingsStore {
   settings: AppSettings
@@ -26,8 +38,18 @@ interface SettingsStore {
   resetSettings: () => void
 }
 
+function loadSettings(): AppSettings {
+  const stored = getItem<Partial<AppSettings>>(STORAGE_KEY, {})
+  return {
+    ...defaultSettings,
+    ...stored,
+    streamCache: { ...defaultSettings.streamCache, ...(stored.streamCache ?? {}) },
+    prefetchCache: { ...defaultSettings.prefetchCache, ...(stored.prefetchCache ?? {}) },
+  }
+}
+
 export const useSettingsStore = create<SettingsStore>((set) => ({
-  settings: getItem<AppSettings>(STORAGE_KEY, defaultSettings),
+  settings: loadSettings(),
 
   updateSettings: (partial) =>
     set((state) => {

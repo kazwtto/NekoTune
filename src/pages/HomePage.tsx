@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import { motion } from "framer-motion"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
@@ -8,16 +8,21 @@ import { usePlayerStore } from "../stores/playerStore"
 import { useScrollPersistence } from "../hooks/useScrollPersistence"
 import Shimmer from "../components/ui/Shimmer"
 import ScrollRow from "../components/ui/ScrollRow"
-import { Music, Play, RefreshCw, Shuffle } from "lucide-react"
+import { Music, RefreshCw, Shuffle } from "lucide-react"
 import type { Song, Album, Artist, Playlist } from "../types/music"
 import type { MoodGenre } from "../services/innertube"
-import { proxyUrl, highResThumb } from "../services/proxy"
+import SongCard from "../components/media/SongCard"
 import AlbumCard from "../components/media/AlbumCard"
 import ArtistCard from "../components/media/ArtistCard"
 import PlaylistCard from "../components/media/PlaylistCard"
 
-function SectionTitle({ title }: { title: string }) {
-  return <h3 className="mb-3 text-base font-bold text-primary">{title}</h3>
+function SectionTitle({ title, label }: { title: string; label?: string }) {
+  return (
+    <div className="mb-3">
+      {label && <p className="mb-0.5 text-[11px] font-medium uppercase tracking-widest text-muted">{label}</p>}
+      <h3 className="text-base font-bold text-primary">{title}</h3>
+    </div>
+  )
 }
 
 function TagCarousel({ tags, onRefresh, refreshing }: { tags: MoodGenre[]; onRefresh?: () => void; refreshing?: boolean }) {
@@ -60,61 +65,36 @@ function TagCarousel({ tags, onRefresh, refreshing }: { tags: MoodGenre[]; onRef
   )
 }
 
-function SongRow({ songs, title }: { songs: Song[]; title: string }) {
-  const { play } = usePlayer()
+
+
+function SongRow({ songs, title, label }: { songs: Song[]; title: string; label?: string }) {
   const currentSong = usePlayerStore((s) => s.currentSong)
 
   if (songs.length === 0) return null
 
   return (
-    <div className="mb-6">
-      <SectionTitle title={title} />
+    <div className="mb-7">
+      <SectionTitle title={title} label={label} />
       <ScrollRow className="gap-2">
         {songs.map((song, i) => (
-          <div
+          <SongCard
             key={song.videoId || i}
-            className={`group flex min-w-[280px] max-w-[280px] cursor-pointer items-center gap-3 rounded-lg p-2 transition-all duration-150 hover:bg-bg-hover ${
-              currentSong?.videoId === song.videoId ? "bg-accent/10" : ""
-            }`}
-            onClick={() => play(song)}
-          >
-            {song.isLocal ? (
-              song.albumArtUrl ? (
-                <img src={song.albumArtUrl} alt="" className="h-12 w-12 flex-shrink-0 rounded-lg object-cover" />
-              ) : (
-                <div className="thumb-placeholder h-12 w-12" />
-              )
-            ) : song.videoId ? (
-              <img
-                src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)}
-                alt=""
-                className="h-12 w-12 flex-shrink-0 rounded-lg object-cover"
-              />
-            ) : (
-              <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-bg-elevated">
-                <Music size={16} className="text-muted" />
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-primary">{song.title}</p>
-              <p className="truncate text-xs text-secondary">{song.artist}</p>
-            </div>
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-accent opacity-0 shadow-md transition-all duration-150 group-hover:opacity-100">
-              <Play size={14} fill="currentColor" className="ml-0.5 text-white" />
-            </div>
-          </div>
+            song={song}
+            isActive={currentSong?.videoId === song.videoId}
+            variant="compact"
+          />
         ))}
       </ScrollRow>
     </div>
   )
 }
 
-function AlbumRow({ albums, title }: { albums: Album[]; title: string }) {
+function AlbumRow({ albums, title, label }: { albums: Album[]; title: string; label?: string }) {
   if (albums.length === 0) return null
 
   return (
-    <div className="mb-6">
-      <SectionTitle title={title} />
+    <div className="mb-7">
+      <SectionTitle title={title} label={label} />
       <ScrollRow className="gap-3">
         {albums.map((album) => (
           <div key={album.browseId} className="min-w-[160px] max-w-[160px]">
@@ -126,12 +106,12 @@ function AlbumRow({ albums, title }: { albums: Album[]; title: string }) {
   )
 }
 
-function ArtistRow({ artists, title }: { artists: Artist[]; title: string }) {
+function ArtistRow({ artists, title, label }: { artists: Artist[]; title: string; label?: string }) {
   if (artists.length === 0) return null
 
   return (
-    <div className="mb-6">
-      <SectionTitle title={title} />
+    <div className="mb-7">
+      <SectionTitle title={title} label={label} />
       <ScrollRow className="gap-4">
         {artists.map((artist) => (
           <ArtistCard key={artist.browseId} artist={artist} />
@@ -141,12 +121,12 @@ function ArtistRow({ artists, title }: { artists: Artist[]; title: string }) {
   )
 }
 
-function PlaylistRow({ playlists, title }: { playlists: Playlist[]; title: string }) {
+function PlaylistRow({ playlists, title, label }: { playlists: Playlist[]; title: string; label?: string }) {
   if (playlists.length === 0) return null
 
   return (
-    <div className="mb-6">
-      <SectionTitle title={title} />
+    <div className="mb-7">
+      <SectionTitle title={title} label={label} />
       <ScrollRow className="gap-3">
         {playlists.map((pl) => (
           <div key={pl.browseId} className="min-w-[160px] max-w-[160px]">
@@ -190,11 +170,11 @@ export default function HomePage() {
   const quickPicks = useMemo(() => {
     const seen = new Set<string>()
     const result: Song[] = []
-    for (const s of queueHistory) {
-      if (!seen.has(s.videoId)) {
-        seen.add(s.videoId)
-        result.push(s)
-      }
+    for (const entry of queueHistory) {
+      const s = entry.song
+      if (!s?.videoId || seen.has(s.videoId)) continue
+      seen.add(s.videoId)
+      result.push(s)
     }
     for (let i = result.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1))
@@ -206,11 +186,31 @@ export default function HomePage() {
   const keepListening = useMemo(() => {
     const seen = new Set<string>()
     const result: Song[] = []
-    for (const s of queueHistory) {
-      if (!seen.has(s.videoId)) {
-        seen.add(s.videoId)
-        result.push(s)
-      }
+    for (const entry of queueHistory) {
+      const s = entry.song
+      if (!s?.videoId || seen.has(s.videoId)) continue
+      seen.add(s.videoId)
+      result.push(s)
+    }
+    return result.slice(0, 15)
+  }, [queueHistory])
+
+  const forgottenFavorites = useMemo(() => {
+    if (queueHistory.length < 20) return []
+    const recentIds = new Set(
+      queueHistory.slice(-30).map((e) => e.song?.videoId).filter(Boolean)
+    )
+    const oldSeen = new Set<string>()
+    const result: Song[] = []
+    for (const entry of queueHistory.slice(0, -30)) {
+      const s = entry.song
+      if (!s?.videoId || recentIds.has(s.videoId) || oldSeen.has(s.videoId)) continue
+      oldSeen.add(s.videoId)
+      result.push(s)
+    }
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[result[i], result[j]] = [result[j], result[i]]
     }
     return result.slice(0, 15)
   }, [queueHistory])
@@ -221,7 +221,7 @@ export default function HomePage() {
 
     if (homeData?.sections) {
       for (const sec of homeData.sections) {
-        const songs = sec.items.filter((i): i is Song => "videoId" in i && !seenSongIds.has(i.videoId))
+        const songs = sec.items.filter((i): i is Song => "videoId" in i && !!i.videoId && !seenSongIds.has(i.videoId))
         for (const s of songs) seenSongIds.add(s.videoId)
         const albums = sec.items.filter((i): i is Album => "browseId" in i && "songs" in i && "coverUrl" in i)
         const artists = sec.items.filter((i): i is Artist => "browseId" in i && "imageUrl" in i && !("songs" in i))
@@ -237,7 +237,7 @@ export default function HomePage() {
       const existingTitles = new Set(result.map((r) => r.title.toLowerCase()))
       for (const sec of exploreData.sections) {
         if (existingTitles.has(sec.title.toLowerCase())) continue
-        const songs = sec.items.filter((i): i is Song => "videoId" in i && !seenSongIds.has(i.videoId))
+        const songs = sec.items.filter((i): i is Song => "videoId" in i && !!i.videoId && !seenSongIds.has(i.videoId))
         for (const s of songs) seenSongIds.add(s.videoId)
         const albums = sec.items.filter((i): i is Album => "browseId" in i && "songs" in i && "coverUrl" in i)
         const artists = sec.items.filter((i): i is Artist => "browseId" in i && "imageUrl" in i && !("songs" in i))
@@ -336,6 +336,14 @@ export default function HomePage() {
           <div className={tags.length > 0 ? "" : "pt-4"}>
             {quickPicks.length > 0 && (
               <SongRow songs={quickPicks} title={t("home.quickPicks")} />
+            )}
+
+            {forgottenFavorites.length > 0 && (
+              <SongRow
+                songs={forgottenFavorites}
+                title={t("home.forgottenFavorites")}
+                label={t("home.forgottenFavoritesLabel")}
+              />
             )}
 
             {keepListening.length > 0 && (

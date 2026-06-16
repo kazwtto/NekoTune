@@ -2,7 +2,7 @@
 name = "nekotune"
 version = "0.1.0"
 description = "A desktop YouTube Music wrapper"
-authors = ["NekoTune"]
+authors = ["kazwtto"]
 edition = "2021"
 
 [lib]
@@ -13,7 +13,7 @@ crate-type = ["lib", "cdylib", "staticlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon"] }
+tauri = { version = "2.4", features = ["tray-icon"] }
 tauri-plugin-shell = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"

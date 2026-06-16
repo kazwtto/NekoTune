@@ -53,17 +53,22 @@ export function ContextMenuItem({
   onClick,
   children,
   danger,
+  className,
+  disabled,
 }: {
   onClick: () => void
   children: ReactNode
   danger?: boolean
+  className?: string
+  disabled?: boolean
 }) {
   return (
     <button
       onClick={onClick}
-      className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs transition-colors duration-150 hover:bg-bg-hover ${
+      disabled={disabled}
+      className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-xs transition-colors duration-150 hover:bg-bg-hover disabled:cursor-not-allowed disabled:opacity-50 ${
         danger ? "text-error" : "text-secondary"
-      }`}
+      } ${className ?? ""}`}
     >
       {children}
     </button>

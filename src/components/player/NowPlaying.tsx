@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
 import {
-  Music, Shuffle, Repeat, Heart, ListMusic, Loader2,
-  ChevronDown, Repeat1, Mic2, X, Trash2,
+  Shuffle, Repeat, Heart, ListMusic, Loader2,
+  ChevronDown, Repeat1, Mic2, Trash2,
 } from "lucide-react"
 import { usePlayer } from "../../hooks/usePlayer"
 import { useUiStore } from "../../stores/uiStore"

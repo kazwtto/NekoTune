@@ -7,10 +7,10 @@
   --color-bg-hover: #242d3d;
   --color-bg-backdrop: #0a0e14;
   --color-border: rgba(255, 255, 255, 0.06);
-  --color-accent: #7c6aef;
-  --color-accent-hover: #6b57e8;
-  --color-accent-muted: rgba(124, 106, 239, 0.15);
-  --color-accent-glow: rgba(124, 106, 239, 0.3);
+  --color-accent: #c6a0f6; /* Pastel Mauve */
+  --color-accent-hover: #b7bdf8; /* Pastel Lavender */
+  --color-accent-muted: rgba(198, 160, 246, 0.15);
+  --color-accent-glow: rgba(198, 160, 246, 0.3);
   --color-primary: #e6edf3;
   --color-secondary: #8b949e;
   --color-muted: #484f58;
@@ -19,6 +19,45 @@
   --color-success: #3fb950;
   --color-gradient-start: #1a1040;
   --color-gradient-end: #0d1117;
+}
+
+:root[data-theme="dark"], [data-theme="dark"] {
+  --color-bg-primary: #0d1117;
+  --color-bg-surface: #161b22;
+  --color-bg-elevated: #1c2333;
+  --color-bg-hover: #242d3d;
+  --color-bg-backdrop: #0a0e14;
+  --color-player: #111827;
+  --color-primary: #e6edf3;
+  --color-secondary: #8b949e;
+  --color-muted: #484f58;
+  --color-border: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="light"], [data-theme="light"] {
+  --color-bg-primary: #f1f5f9;
+  --color-bg-surface: #ffffff;
+  --color-bg-elevated: #e2e8f0;
+  --color-bg-hover: #cbd5e1;
+  --color-bg-backdrop: rgba(241, 245, 249, 0.8);
+  --color-player: #ffffff;
+  --color-primary: #0f172a;
+  --color-secondary: #475569;
+  --color-muted: #94a3b8;
+  --color-border: rgba(15, 23, 42, 0.1);
+}
+
+:root[data-theme="pure-black"], [data-theme="pure-black"] {
+  --color-bg-primary: #000000;
+  --color-bg-surface: #080808;
+  --color-bg-elevated: #111111;
+  --color-bg-hover: #1a1a1a;
+  --color-bg-backdrop: #000000;
+  --color-player: #030303;
+  --color-primary: #e6edf3;
+  --color-secondary: #8b949e;
+  --color-muted: #484f58;
+  --color-border: rgba(255, 255, 255, 0.04);
 }
 
 body {
@@ -217,4 +256,14 @@ input[type="range"]::-moz-range-thumb {
   background: var(--color-accent);
   border-radius: 50%;
   border: 2px solid #000;
+}
+
+:root.hide-scrollbar ::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+:root.hide-scrollbar * {
+  scrollbar-width: none !important;
 }

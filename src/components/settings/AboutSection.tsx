@@ -24,19 +24,7 @@ export default function AboutSection() {
             <span className="text-sm text-secondary">{t("settings.version")}</span>
             <span className="text-sm tabular-nums text-muted">{APP_VERSION}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-secondary">{t("settings.engine")}</span>
-            <span className="text-sm text-muted">Tauri 2.x + React</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-secondary">{t("settings.audioTech")}</span>
-            <span className="text-sm text-muted">yt-dlp + Howler.js</span>
-          </div>
         </div>
-      </SettingsCard>
-
-      <SettingsCard title={t("common.account")}>
-        <p className="text-sm text-secondary">{t("settings.loginDescription")}</p>
       </SettingsCard>
     </div>
   )

@@ -1,6 +1,6 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::sync::LazyLock;
+use std::sync::{LazyLock, RwLock};
 
 static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
@@ -8,6 +8,14 @@ static CLIENT: LazyLock<Client> = LazyLock::new(|| {
         .build()
         .expect("Failed to create HTTP client")
 });
+
+static COOKIE: LazyLock<RwLock<String>> = LazyLock::new(|| RwLock::new(String::new()));
+
+pub fn set_account_cookie(cookie: &str) {
+    if let Ok(mut c) = COOKIE.write() {
+        *c = cookie.to_string();
+    }
+}
 
 const WEB_REMIX_VERSION: &str = "1.20250310.01.00";
 const WEB_REMIX_CLIENT_ID: &str = "67";
@@ -31,11 +39,18 @@ fn get_browse_context() -> serde_json::Value {
 }
 
 fn yt_client(req: reqwest::RequestBuilder) -> reqwest::RequestBuilder {
-    req.header("X-Goog-Api-Format-Version", "1")
+    let mut builder = req
+        .header("X-Goog-Api-Format-Version", "1")
         .header("X-YouTube-Client-Name", WEB_REMIX_CLIENT_ID)
         .header("X-YouTube-Client-Version", WEB_REMIX_VERSION)
         .header("X-Origin", "https://music.youtube.com")
-        .header("Referer", "https://music.youtube.com/")
+        .header("Referer", "https://music.youtube.com/");
+    if let Ok(cookie) = COOKIE.read() {
+        if !cookie.is_empty() {
+            builder = builder.header("Cookie", cookie.as_str());
+        }
+    }
+    builder
 }
 
 #[derive(Debug, Serialize, Deserialize)]

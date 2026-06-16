@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom"
 import type { Album } from "../../types/music"
-import { Music } from "lucide-react"
 import { proxyUrl } from "../../services/proxy"
 
 interface AlbumCardProps {

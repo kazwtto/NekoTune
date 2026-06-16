@@ -1,7 +1,7 @@
 import { useSettingsStore } from "../../stores/settingsStore"
 import { useTranslation } from "react-i18next"
-import RadioGroup from "./RadioGroup"
 import Toggle from "./Toggle"
+import Dropdown from "../ui/Dropdown"
 
 export default function AudioSection() {
   const { t } = useTranslation()
@@ -11,17 +11,17 @@ export default function AudioSection() {
     <div className="flex flex-col gap-8 px-4">
       <div>
         <h3 className="mb-5 text-xs font-semibold text-secondary">{t("settings.audioQuality")}</h3>
-        <div className="ml-3">
-        <RadioGroup
+        <div className="ml-3 max-w-xs">
+          <Dropdown
           value={settings.audioQuality}
           onChange={(v) => updateSettings({ audioQuality: v as "low" | "medium" | "high" })}
           options={[
-            { value: "low", label: t("settings.low"), description: t("settings.lowDesc") },
-            { value: "medium", label: t("settings.medium"), description: t("settings.mediumDesc") },
-            { value: "high", label: t("settings.high"), description: t("settings.highDesc") },
+            { value: "low", label: t("settings.low") },
+            { value: "medium", label: t("settings.medium") },
+            { value: "high", label: t("settings.high") },
           ]}
         />
-      </div>
+        </div>
       </div>
 
       <div>

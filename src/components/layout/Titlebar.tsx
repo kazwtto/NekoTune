@@ -8,6 +8,10 @@ import SearchHistory from "../search/SearchHistory"
 import { useSearch } from "../../hooks/useSearch"
 import { useUiStore } from "../../stores/uiStore"
 import { motion, AnimatePresence } from "framer-motion"
+import ConfirmationModal from "../ui/ConfirmationModal"
+import Button from "../ui/Button"
+import { useTranslation } from "react-i18next"
+import { invoke } from "@tauri-apps/api/core"
 
 const appWindow = getCurrentWindow()
 
@@ -20,6 +24,8 @@ export default function Titlebar() {
   const fullscreen = useUiStore((s) => s.nowPlayingVisible || s.settingsVisible)
   const settingsVisible = useUiStore((s) => s.settingsVisible)
   const setSettingsVisible = useUiStore((s) => s.setSettingsVisible)
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false)
+  const { t } = useTranslation()
 
   useEffect(() => {
     appWindow.isMaximized().then(setIsMaximized)
@@ -149,13 +155,41 @@ export default function Titlebar() {
             {isMaximized ? <Square size={13} /> : <Maximize2 size={14} />}
           </button>
           <button
-            onClick={() => appWindow.close()}
+            onClick={() => setShowCloseConfirm(true)}
             className="flex h-full w-12 cursor-pointer items-center justify-center text-muted transition-colors duration-200 hover:bg-red-500/90 hover:text-white group"
           >
             <X size={16} className="transition-transform group-hover:scale-110" />
           </button>
         </div>
       </div>
+
+      <ConfirmationModal
+        open={showCloseConfirm}
+        onClose={() => setShowCloseConfirm(false)}
+        title={t("common.closeAppTitle")}
+        message={t("common.closeAppMessage")}
+        actions={
+          <>
+            <Button
+              variant="primary"
+              onClick={() => {
+                setShowCloseConfirm(false)
+                invoke("cmd_minimize_to_tray")
+              }}
+              className="text-xs bg-white/10 hover:bg-white/20 text-white border-transparent"
+            >
+              {t("common.minimizeToTray")}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => appWindow.close()}
+              className="text-xs bg-error hover:bg-error/90 border-transparent"
+            >
+              {t("common.closeCompletely")}
+            </Button>
+          </>
+        }
+      />
     </div>
   )
 }

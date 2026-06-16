@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { createPortal } from "react-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import { X } from "lucide-react"
 
@@ -11,14 +12,14 @@ interface ModalProps {
 }
 
 export default function Modal({ open, onClose, title, children, width = 380 }: ModalProps) {
-  return (
+  const modalContent = (
     <AnimatePresence>
       {open && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60"
           onClick={onClose}
         >
           <motion.div
@@ -46,4 +47,7 @@ export default function Modal({ open, onClose, title, children, width = 380 }: M
       )}
     </AnimatePresence>
   )
+
+  if (typeof document === "undefined") return null
+  return createPortal(modalContent, document.body)
 }

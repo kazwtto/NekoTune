@@ -3,6 +3,7 @@ import type { Song } from "../types/music"
 import { proxyUrl } from "./proxy"
 import { usePlayerStore } from "../stores/playerStore"
 import { useSettingsStore } from "../stores/settingsStore"
+import { streamCache } from "./streamCache"
 
 class PlayerService {
   private howl: Howl | null = null
@@ -44,7 +45,7 @@ class PlayerService {
 
     try {
       let audioSrc: string | undefined | null = null
-      let durationFromYtdlp = 0
+      let durationFromStream = 0
 
       if (song.isLocal) {
         if (song.fileData) {
@@ -56,10 +57,9 @@ class PlayerService {
       } else {
         if (!song.videoId) return
 
-        // Check if downloaded
         try {
           const { invoke } = await import("@tauri-apps/api/core")
-          const { downloadFolder } = useSettingsStore.getState().settings
+          const { downloadFolder } = this.settings
           const isDown = await invoke<boolean>("cmd_is_downloaded", { videoId: song.videoId, downloadFolder })
 
           if (isDown) {
@@ -79,16 +79,29 @@ class PlayerService {
         }
 
         if (!audioSrc) {
-          const { getStreamUrl: fetchStream } = await import("./innertube")
-          const streamData = await fetchStream(song.videoId)
-          if (gen !== this.loadGeneration) return
-          if (!streamData) {
-            this.patch({ isLoading: false, isPlaying: false })
-            if (this.settings.autoSkipOnError) this.store.next()
-            return
+          const { streamCache: sc } = this.settings
+          const cached = sc.enabled ? streamCache.get(song.videoId) : null
+
+          if (cached) {
+            audioSrc = cached.url
+            durationFromStream = cached.duration
+          } else {
+            const { getStreamUrl: fetchStream } = await import("./innertube")
+            const streamData = await fetchStream(song.videoId)
+            if (gen !== this.loadGeneration) return
+            if (!streamData) {
+              this.patch({ isLoading: false, isPlaying: false })
+              if (this.settings.autoSkipOnError) this.store.next()
+              return
+            }
+            const proxied = proxyUrl(streamData.url)
+            durationFromStream = streamData.duration
+            if (sc.enabled && proxied) {
+              streamCache.configure(sc.maxEntries)
+              streamCache.set(song.videoId, proxied, streamData.duration, sc.ttlMinutes * 60 * 1000)
+            }
+            audioSrc = proxied
           }
-          audioSrc = proxyUrl(streamData.url)
-          durationFromYtdlp = streamData.duration
         }
       }
 
@@ -106,7 +119,7 @@ class PlayerService {
         onload: () => {
           if (gen !== this.loadGeneration) return
           const howlDuration = this.howl?.duration() ?? 0
-          const dur = howlDuration > 0 ? howlDuration : durationFromYtdlp
+          const dur = howlDuration > 0 ? howlDuration : durationFromStream
           this.patch({ isLoading: false, duration: dur > 0 ? dur : this.store.duration })
           if (autoPlay) this.howl?.play()
         },

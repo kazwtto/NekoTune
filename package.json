@@ -10,6 +10,7 @@
     "tauri": "tauri",
     "lint": "eslint .",
     "build:app": "pwsh -File ./build.ps1",
+    "build:app:unix": "bash ./build.sh",
     "build:app:clean": "pwsh -File ./build.ps1 -Clean",
     "build:app:release": "pwsh -File ./build.ps1 -Release"
   },

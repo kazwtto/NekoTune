@@ -3,6 +3,7 @@ import { usePlayerStore } from "../stores/playerStore"
 import { playerService } from "../services/player"
 import { loadPlayerState, savePlayerState } from "../utils/playerPersist"
 import type { Song } from "../types/music"
+import { usePrefetch } from "./usePrefetch"
 
 let restored = false
 
@@ -44,6 +45,8 @@ function restoreOnce() {
 }
 
 export function usePlayer() {
+  usePrefetch()
+
   useEffect(() => {
     restoreOnce()
   }, [])
