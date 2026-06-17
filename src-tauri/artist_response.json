@@ -1,0 +1,73 @@
+{
+  "responseContext": {
+    "visitorData": "CgtKbXZydkJJYjgxNCjJ5cfRBjIKCgJCUhIEGgAgHA%3D%3D",
+    "serviceTrackingParams": [
+      {
+        "service": "GFEEDBACK",
+        "params": [
+          {
+            "key": "context",
+            "value": "channel_creator"
+          },
+          {
+            "key": "has_unlimited_entitlement",
+            "value": "False"
+          },
+          {
+            "key": "browse_id",
+            "value": "UCMZXFhRIef6VDjgmG9-GUaw"
+          },
+          {
+            "key": "browse_id_prefix",
+            "value": ""
+          },
+          {
+            "key": "logged_in",
+            "value": "0"
+          }
+        ]
+      },
+      {
+        "service": "CSI",
+        "params": [
+          {
+            "key": "c",
+            "value": "WEB_REMIX"
+          },
+          {
+            "key": "cver",
+            "value": "1.20250310.01.00"
+          },
+          {
+            "key": "yt_li",
+            "value": "0"
+          },
+          {
+            "key": "GetBrowseArtistDetailPage_rid",
+            "value": "0x14fbb168b76446e2"
+          }
+        ]
+      },
+      {
+        "service": "ECATCHER",
+        "params": [
+          {
+            "key": "client.version",
+            "value": "1.20000101"
+          },
+          {
+            "key": "client.name",
+            "value": "WEB_REMIX"
+          }
+        ]
+      }
+    ],
+    "responseId": "IhMIpNCet4qNlQMVJLyVAh1OLxbO"
+  },
+  "trackingParams": "CAAQhGciEwik0J63io2VAxUkvJUCHU4vFs7KAQQn15PR",
+  "microformat": {
+    "microformatDataRenderer": {
+      "noindex": true
+    }
+  }
+}

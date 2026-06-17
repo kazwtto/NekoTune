@@ -2,7 +2,8 @@ import { useTranslation } from "react-i18next"
 import { usePlayer } from "../../hooks/usePlayer"
 import { useLibraryStore } from "../../stores/libraryStore"
 import { useDownloadStore } from "../../stores/downloadStore"
-import { Play, Plus, Heart, Download, Check, Loader2, Music } from "lucide-react"
+import { useUiStore } from "../../stores/uiStore"
+import { Play, Plus, Heart, Download, Check, Loader2, Music, ListMusic, MoreHorizontal, Trash2 } from "lucide-react"
 import type { Song } from "../../types/music"
 import { formatTime } from "../../utils/format"
 import { useState } from "react"
@@ -12,16 +13,18 @@ import { proxyUrl, highResThumb } from "../../services/proxy"
 interface SongCardProps {
   song: Song
   index?: number
-  variant?: "list" | "compact"
+  variant?: "list" | "compact" | "table"
   isActive?: boolean
   onClick?: () => void
+  playlistId?: string
 }
 
-export default function SongCard({ song, index, variant = "list", isActive, onClick }: SongCardProps) {
+export default function SongCard({ song, index, variant = "list", isActive, onClick, playlistId }: SongCardProps) {
   const { t } = useTranslation()
   const { play, addToQueue } = usePlayer()
-  const { favorites, toggleFavorite } = useLibraryStore()
+  const { favorites, toggleFavorite, removeFromPlaylist } = useLibraryStore()
   const { downloadedIds, downloadingIds, download } = useDownloadStore()
+  const setPlaylistSelectModalVisible = useUiStore((s) => s.setPlaylistSelectModalVisible)
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
 
   const isFav = favorites.includes(song.videoId)
@@ -45,6 +48,122 @@ export default function SongCard({ song, index, variant = "list", isActive, onCl
   function handleContextMenu(e: React.MouseEvent) {
     e.preventDefault()
     setMenuPos({ x: e.clientX, y: e.clientY })
+  }
+
+  if (variant === "table") {
+    return (
+      <>
+        <div
+          className={`group grid grid-cols-[32px_minmax(0,2.5fr)_minmax(0,2fr)_50px_32px_32px] gap-3 items-center cursor-pointer transition-colors hover:bg-white/5 px-4 py-1.5 border-b border-white/[0.02] last:border-0 ${
+            isActive ? "bg-accent/10" : ""
+          }`}
+          onClick={handlePlay}
+          onContextMenu={handleContextMenu}
+        >
+          <div className="flex items-center justify-center w-full">
+            <span className="text-[11px] font-medium text-white/50 group-hover:hidden">
+              {index !== undefined ? index + 1 : ""}
+            </span>
+            <div className="hidden h-5 w-5 items-center justify-center group-hover:flex">
+              <Play size={10} fill="currentColor" className="text-white" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative h-8 w-8 flex-shrink-0">
+              {song.isLocal ? (
+                song.albumArtUrl ? (
+                  <img src={song.albumArtUrl} alt="" className="h-full w-full rounded-md object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center rounded-md bg-white/5">
+                    <Music size={12} className="text-white/40" />
+                  </div>
+                )
+              ) : song.albumArtUrl || song.videoId ? (
+                <img src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)} alt="" className="h-full w-full rounded-md object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center rounded-md bg-white/5">
+                  <Music size={12} className="text-white/40" />
+                </div>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className={`truncate text-[12px] font-semibold ${isActive ? "text-[#E83B7E]" : "text-white"}`}>{song.title}</p>
+              <p className="truncate text-[11px] text-white/50">{song.artist}</p>
+            </div>
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[11px] text-white/50">{song.artist}</p>
+          </div>
+
+          <div className="text-[11px] tabular-nums text-white/50 flex items-center justify-end font-medium">
+            {song.duration > 0 ? formatTime(song.duration) : ""}
+          </div>
+
+          <div className="flex items-center justify-center">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                toggleFavorite(song.videoId)
+              }}
+              className={`cursor-pointer transition-transform duration-150 hover:scale-110 ${isFav ? "text-[#E83B7E]" : "text-white/40 opacity-0 group-hover:opacity-100 hover:text-white"}`}
+            >
+              <Heart size={14} fill={isFav ? "currentColor" : "none"} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center">
+            <button
+              onClick={handleContextMenu}
+              className="cursor-pointer text-white/40 opacity-0 transition-all duration-150 group-hover:opacity-100 hover:text-white"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
+        </div>
+
+        {menuPos && (
+          <ContextMenu x={menuPos.x} y={menuPos.y} onClose={() => setMenuPos(null)}>
+            <ContextMenuItem onClick={handlePlay}>
+              <Play size={14} /> {t("common.play")}
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => { addToQueue(song); setMenuPos(null) }}>
+              <Plus size={14} /> {t("player.addToQueue")}
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => { setPlaylistSelectModalVisible(true, song); setMenuPos(null) }}>
+              <ListMusic size={14} /> {t("common.addToPlaylist")}
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => { toggleFavorite(song.videoId); setMenuPos(null) }}>
+              <Heart size={14} fill={isFav ? "currentColor" : "none"} /> {isFav ? t("common.removeFromFavorites") : t("common.addToFavorites")}
+            </ContextMenuItem>
+            {!song.isLocal && (
+              <ContextMenuItem 
+                onClick={() => { handleDownload(); setMenuPos(null) }} 
+                disabled={isDownloaded || isDownloading}
+              >
+                {isDownloading ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : isDownloaded ? (
+                  <Check size={14} />
+                ) : (
+                  <Download size={14} />
+                )}
+                {isDownloaded ? t("common.downloaded") : isDownloading ? t("common.downloading") : t("common.download")}
+              </ContextMenuItem>
+            )}
+            {playlistId && (
+              <ContextMenuItem 
+                onClick={() => { removeFromPlaylist(playlistId, song.videoId); setMenuPos(null) }}
+                className="text-red-400 hover:text-red-300"
+              >
+                <Trash2 size={14} /> {t("common.remove", "Remover da playlist")}
+              </ContextMenuItem>
+            )}
+          </ContextMenu>
+        )}
+      </>
+    )
   }
 
   return (
@@ -142,6 +261,9 @@ export default function SongCard({ song, index, variant = "list", isActive, onCl
           <ContextMenuItem onClick={() => { addToQueue(song); setMenuPos(null) }}>
             <Plus size={14} /> {t("player.addToQueue")}
           </ContextMenuItem>
+          <ContextMenuItem onClick={() => { setPlaylistSelectModalVisible(true, song); setMenuPos(null) }}>
+            <ListMusic size={14} /> {t("common.addToPlaylist")}
+          </ContextMenuItem>
           <ContextMenuItem onClick={() => { toggleFavorite(song.videoId); setMenuPos(null) }}>
             <Heart size={14} fill={isFav ? "currentColor" : "none"} /> {isFav ? t("common.removeFromFavorites") : t("common.addToFavorites")}
           </ContextMenuItem>
@@ -158,6 +280,14 @@ export default function SongCard({ song, index, variant = "list", isActive, onCl
                 <Download size={14} />
               )}
               {isDownloaded ? t("common.downloaded") : isDownloading ? t("common.downloading") : t("common.download")}
+            </ContextMenuItem>
+          )}
+          {playlistId && (
+            <ContextMenuItem 
+              onClick={() => { removeFromPlaylist(playlistId, song.videoId); setMenuPos(null) }}
+              className="text-red-400 hover:text-red-300"
+            >
+              <Trash2 size={14} /> {t("common.remove", "Remover da playlist")}
             </ContextMenuItem>
           )}
         </ContextMenu>

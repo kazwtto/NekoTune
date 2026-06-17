@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { getItem, setItem } from "../utils/storage"
+import type { Song } from "../types/music"
 
 const FAVORITES_KEY = "nekotune-favorites"
 const PLAYLISTS_KEY = "nekotune-playlists"
@@ -7,8 +8,12 @@ const PLAYLISTS_KEY = "nekotune-playlists"
 export interface Playlist {
   id: string
   title: string
-  songIds: string[]
+  songs: Song[]
   createdAt: number
+  isFavorite?: boolean
+  image?: string
+  color?: string
+  icon?: string
 }
 
 interface LibraryStore {
@@ -16,10 +21,12 @@ interface LibraryStore {
   playlists: Playlist[]
   toggleFavorite: (videoId: string) => void
   isFavorite: (videoId: string) => boolean
-  createPlaylist: (title: string) => void
+  createPlaylist: (data: { title: string; image?: string; color?: string; icon?: string }) => void
+  updatePlaylist: (id: string, data: Partial<Playlist>) => void
   deletePlaylist: (id: string) => void
-  addToPlaylist: (playlistId: string, videoId: string) => void
+  addToPlaylist: (playlistId: string, song: Song) => void
   removeFromPlaylist: (playlistId: string, videoId: string) => void
+  togglePlaylistFavorite: (playlistId: string) => void
 }
 
 export const useLibraryStore = create<LibraryStore>((set, get) => ({
@@ -39,14 +46,26 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     return get().favorites.includes(videoId)
   },
 
-  createPlaylist: (title: string) => {
+  createPlaylist: (data) => {
     const playlist: Playlist = {
       id: `pl-${Date.now()}`,
-      title,
-      songIds: [],
+      title: data.title,
+      image: data.image,
+      color: data.color,
+      icon: data.icon,
+      songs: [],
       createdAt: Date.now(),
+      isFavorite: false,
     }
     const next = [...get().playlists, playlist]
+    setItem(PLAYLISTS_KEY, next)
+    set({ playlists: next })
+  },
+
+  updatePlaylist: (id: string, data: Partial<Playlist>) => {
+    const next = get().playlists.map((p) =>
+      p.id === id ? { ...p, ...data } : p
+    )
     setItem(PLAYLISTS_KEY, next)
     set({ playlists: next })
   },
@@ -57,10 +76,10 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
     set({ playlists: next })
   },
 
-  addToPlaylist: (playlistId: string, videoId: string) => {
+  addToPlaylist: (playlistId: string, song: Song) => {
     const next = get().playlists.map((p) =>
-      p.id === playlistId && !p.songIds.includes(videoId)
-        ? { ...p, songIds: [...p.songIds, videoId] }
+      p.id === playlistId && !p.songs.some(s => s.videoId === song.videoId)
+        ? { ...p, songs: [...(p.songs || []), song] }
         : p
     )
     setItem(PLAYLISTS_KEY, next)
@@ -70,8 +89,16 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   removeFromPlaylist: (playlistId: string, videoId: string) => {
     const next = get().playlists.map((p) =>
       p.id === playlistId
-        ? { ...p, songIds: p.songIds.filter((id) => id !== videoId) }
+        ? { ...p, songs: (p.songs || []).filter((s) => s.videoId !== videoId) }
         : p
+    )
+    setItem(PLAYLISTS_KEY, next)
+    set({ playlists: next })
+  },
+
+  togglePlaylistFavorite: (playlistId: string) => {
+    const next = get().playlists.map((p) =>
+      p.id === playlistId ? { ...p, isFavorite: !p.isFavorite } : p
     )
     setItem(PLAYLISTS_KEY, next)
     set({ playlists: next })

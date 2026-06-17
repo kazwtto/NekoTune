@@ -5,13 +5,21 @@ interface PlaylistWithSongs {
   id: string
   name: string
   tracks: Song[]
+  isFavorite?: boolean
+  image?: string
+  color?: string
+  icon?: string
 }
 
-function resolvePlaylist(playlist: { id: string; title: string; songIds: string[] }): PlaylistWithSongs {
+function resolvePlaylist(playlist: { id: string; title: string; songs: Song[]; isFavorite?: boolean; image?: string; color?: string; icon?: string }): PlaylistWithSongs {
   return {
     id: playlist.id,
     name: playlist.title,
-    tracks: [],
+    tracks: playlist.songs || [],
+    isFavorite: playlist.isFavorite,
+    image: playlist.image,
+    color: playlist.color,
+    icon: playlist.icon,
   }
 }
 
@@ -29,7 +37,7 @@ export function usePlaylistStore() {
     addPlaylist: createPlaylist,
     removePlaylist: deletePlaylist,
     addSongToPlaylist: (playlistId: string, track: Song) => {
-      addToPlaylist(playlistId, track.videoId)
+      addToPlaylist(playlistId, track)
     },
     removeSongFromPlaylist: (playlistId: string, videoId: string) => {
       removeFromPlaylist(playlistId, videoId)

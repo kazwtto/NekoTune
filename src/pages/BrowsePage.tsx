@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react"
 import { motion } from "framer-motion"
-import { useParams, useSearchParams, useNavigate } from "react-router-dom"
+import { useParams, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import { useQuery } from "@tanstack/react-query"
 import { browseCategory } from "../services/innertube"
@@ -11,7 +11,7 @@ import ScrollRow from "../components/ui/ScrollRow"
 import AlbumCard from "../components/media/AlbumCard"
 import ArtistCard from "../components/media/ArtistCard"
 import PlaylistCard from "../components/media/PlaylistCard"
-import { Music, Play, ArrowLeft } from "lucide-react"
+import { Music, Play } from "lucide-react"
 import type { Song, Album, Artist, Playlist } from "../types/music"
 import { proxyUrl, highResThumb } from "../services/proxy"
 
@@ -106,7 +106,6 @@ export default function BrowsePage() {
   const { browseId } = useParams<{ browseId: string }>()
   const [searchParams] = useSearchParams()
   const params = searchParams.get("params") || undefined
-  const navigate = useNavigate()
   const { t } = useTranslation()
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -132,13 +131,7 @@ export default function BrowsePage() {
     >
       <div className="pt-4">
         <div className="mb-4 flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition-colors duration-150 hover:bg-bg-hover"
-          >
-            <ArrowLeft size={18} className="text-primary" />
-          </button>
-          {pageTitle && <h1 className="ml-2 flex-1 text-lg font-bold text-primary">{pageTitle}</h1>}
+          {pageTitle && <h1 className="flex-1 text-lg font-bold text-primary">{pageTitle}</h1>}
         </div>
 
         {isLoading && (

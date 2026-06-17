@@ -4,6 +4,8 @@ import Sidebar from "./Sidebar"
 import PlayerBar from "./PlayerBar"
 import NowPlaying from "../player/NowPlaying"
 import SettingsPage from "../../pages/SettingsPage"
+import PlaylistModal from "../ui/PlaylistModal"
+import PlaylistSelectModal from "../ui/PlaylistSelectModal"
 import { useKeyboard } from "../../hooks/useKeyboard"
 import { useSettingsEffects } from "../../hooks/useSettingsEffects"
 
@@ -30,6 +32,8 @@ export default function AppShell({ children }: AppShellProps) {
       <PlayerBar />
       <NowPlaying />
       <SettingsPage />
+      <PlaylistModal />
+      <PlaylistSelectModal />
     </div>
   )
 }

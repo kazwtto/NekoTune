@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next"
 import { usePlayer } from "../../hooks/usePlayer"
 import { useLibraryStore } from "../../stores/libraryStore"
 import { useDownloadStore } from "../../stores/downloadStore"
-import { Play, Plus, Heart, Trash2, MoreVertical } from "lucide-react"
+import { useUiStore } from "../../stores/uiStore"
+import { Play, Plus, Heart, Trash2, MoreVertical, ListMusic } from "lucide-react"
 import type { LocalSong } from "../../types/music"
 import { formatTime } from "../../utils/format"
 import ContextMenu, { ContextMenuItem } from "../ui/ContextMenu"
@@ -33,6 +34,7 @@ export default function LocalSongCard({ song, index }: LocalSongCardProps) {
   const { play, addToQueue } = usePlayer()
   const { toggleFavorite, favorites } = useLibraryStore()
   const { remove } = useDownloadStore()
+  const setPlaylistSelectModalVisible = useUiStore((s) => s.setPlaylistSelectModalVisible)
   const [coverFailed, setCoverFailed] = useState(false)
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
   const showCover = song.coverData && !coverFailed
@@ -112,6 +114,9 @@ export default function LocalSongCard({ song, index }: LocalSongCardProps) {
           </ContextMenuItem>
           <ContextMenuItem onClick={() => { addToQueue(localSongToSong(song)); setMenuPos(null) }}>
             <Plus size={14} /> {t("player.addToQueue")}
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => { setPlaylistSelectModalVisible(true, localSongToSong(song)); setMenuPos(null) }}>
+            <ListMusic size={14} /> {t("common.addToPlaylist")}
           </ContextMenuItem>
           <ContextMenuItem onClick={() => { toggleFavorite(effectiveId); setMenuPos(null) }}>
             <Heart size={14} fill={isFav ? "currentColor" : "none"} /> {isFav ? t("common.removeFromFavorites") : t("common.addToFavorites")}

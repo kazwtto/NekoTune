@@ -13,6 +13,7 @@ export interface Song {
   isVideo?: boolean
   filePath?: string
   fileData?: string
+  contentType?: string
 }
 
 export interface Album {
@@ -35,6 +36,8 @@ export interface Artist {
   subscribers?: string
   songs?: Song[]
   albums?: Album[]
+  playlists?: Playlist[]
+  description?: string
 }
 
 export interface Playlist {
@@ -46,6 +49,8 @@ export interface Playlist {
   songCount?: number
   owner?: string
   songs?: Song[]
+  color?: string
+  icon?: string
 }
 
 export interface SearchResults {

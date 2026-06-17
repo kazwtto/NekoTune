@@ -111,7 +111,7 @@ export default function LibraryPage() {
                     </h3>
                     <div className="flex flex-col gap-1.5">
                       {uniqueSongs.map((song) => (
-                        <SongCard song={song} />
+                        <SongCard key={song.videoId} song={song} />
                       ))}
                     </div>
 

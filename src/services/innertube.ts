@@ -7,6 +7,7 @@ interface RustSongData {
   title: string
   artist: string
   artist_id?: string
+  content_type?: string
   album?: string
   album_id?: string
   album_art_url?: string
@@ -99,6 +100,7 @@ function mapSong(s: RustSongData): Song {
     albumId: s.album_id,
     albumArtUrl: s.album_art_url,
     duration: s.duration,
+    contentType: s.content_type || "song",
   }
 }
 
@@ -234,11 +236,8 @@ export async function searchMusic(query: string): Promise<SearchResults> {
   const videos: Song[] = [...mappedVideos]
 
   for (const s of mappedSongs) {
-    if (s.artist?.toLowerCase().includes("video •")) {
-      videos.push(s)
-    } else {
-      songs.push(s)
-    }
+    if (s?.contentType === 'video') videos.push(s);
+    else songs.push(s);
   }
 
   return {

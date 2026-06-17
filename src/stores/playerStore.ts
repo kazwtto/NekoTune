@@ -186,6 +186,29 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     }
   },
 
+  playPlaylist: (songs: Song[], startShuffle = false) => {
+    if (!songs.length) return
+    let queue = [...songs]
+    let queueIndex = 0
+    if (startShuffle) {
+      queueIndex = Math.floor(Math.random() * queue.length)
+      set({ shuffle: true })
+    } else {
+      set({ shuffle: false })
+    }
+    const firstSong = queue[queueIndex]
+    set({
+      queue,
+      queueIndex,
+      currentSong: firstSong,
+      isPlaying: true,
+      isLoading: true,
+      progress: 0,
+      duration: firstSong.duration || 0,
+    })
+    persist(get)
+  },
+
   addToQueue: (song: Song) => {
     const state = get()
     set({ queue: [...state.queue, song] })

@@ -55,13 +55,15 @@
     "playNext": "Play Next",
     "explore": "Explore",
     "history": "History",
-    "playlists": "Playlists"
+    "playlists": "Playlists",
+    "you": "You"
   },
   "player": {
     "nowPlaying": "Now Playing",
     "upNext": "Up Next",
     "history": "History",
     "noQueue": "Queue is empty",
+    "song": "Song",
     "addToQueue": "Add to Queue",
     "playNext": "Play Next",
     "removeFromQueue": "Remove from Queue",
@@ -246,9 +248,31 @@
   "playlist": {
     "edit": "Edit Playlist",
     "delete": "Delete Playlist",
-    "playAll": "Play All",
-    "shufflePlay": "Shuffle Play",
+    "playAll": "Play",
+    "shufflePlay": "Shuffle",
+    "addSongs": "Add songs",
+    "addSongsDesc": "Paste a YouTube link (Music, Video, Playlist, Album or Artist).",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "addCount_one": "Add 1 song",
+    "addCount_other": "Add {{count}} songs",
     "songs": "songs",
     "createdBy": "Created by"
+  },
+  "artist": {
+    "playArtist": "Play artist",
+    "follow": "Follow",
+    "following": "Following",
+    "copyLink": "Copy Link",
+    "linkCopied": "Link copied!",
+    "overview": "Overview",
+    "songs": "Songs",
+    "albums": "Albums",
+    "playlists": "Playlists",
+    "about": "About",
+    "popularSongs": "Popular Songs",
+    "seeAll": "See all",
+    "monthlyAudience": "monthly audience",
+    "since": "On NekoTune since 2018"
   }
 }

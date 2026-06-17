@@ -61,6 +61,19 @@ export function usePlayer() {
     })
   }, [])
 
+  const playPlaylist = useCallback((songs: Song[], startShuffle = false) => {
+    if (!songs.length) return
+    const store = usePlayerStore.getState()
+    store.playPlaylist(songs, startShuffle)
+    const newSong = usePlayerStore.getState().currentSong
+    if (newSong) {
+      playerService.loadAndPlay(newSong).catch((err) => {
+        console.error("Play failed:", err)
+        usePlayerStore.setState({ isLoading: false, isPlaying: false })
+      })
+    }
+  }, [])
+
   const pause = useCallback(() => {
     usePlayerStore.getState().pause()
     playerService.pause()
@@ -163,6 +176,7 @@ export function usePlayer() {
     shuffle,
     repeat,
     play,
+    playPlaylist,
     pause,
     resume,
     next,

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { useNavigate } from "react-router-dom"
-import { Cat, Minus, Square, X, Maximize2, Settings, Search } from "lucide-react"
+import { useNavigate, useLocation } from "react-router-dom"
+import { Cat, Minus, Square, X, Maximize2, Settings, Search, ArrowLeft } from "lucide-react"
 import { APP_NAME } from "../../utils/constants"
 import SearchInput from "../search/SearchInput"
 import SearchHistory from "../search/SearchHistory"
@@ -19,6 +19,7 @@ export default function Titlebar() {
   const [isMaximized, setIsMaximized] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { query, setQuery, suggestions, history, addToHistory, clearHistory } = useSearch()
   const fullscreen = useUiStore((s) => s.nowPlayingVisible || s.settingsVisible)
@@ -62,6 +63,7 @@ export default function Titlebar() {
   }
 
   const showDropdown = searchFocused && (query.length > 0 || history.length > 0)
+  const isRoot = ["/", "/explore", "/library", "/playlists", "/favorites", "/history", "/settings"].includes(location.pathname)
 
   return (
     <div className={`relative flex items-center justify-between bg-bg-base/80 backdrop-blur-md border-b border-white/[0.04] z-50 transition-all duration-300 ${
@@ -76,6 +78,22 @@ export default function Titlebar() {
         <span className="text-sm font-bold tracking-wider text-primary pointer-events-none drop-shadow-sm">
           {APP_NAME}
         </span>
+
+        <AnimatePresence>
+          {!isRoot && (
+            <motion.button
+              initial={{ opacity: 0, x: -10, width: 0, margin: 0 }}
+              animate={{ opacity: 1, x: 0, width: "1.75rem", marginLeft: "2rem" }}
+              exit={{ opacity: 0, x: -10, width: 0, margin: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              onClick={() => navigate(-1)}
+              className="flex h-7 items-center justify-center rounded-xl bg-white/5 text-secondary hover:bg-white/10 hover:text-white transition-colors cursor-pointer overflow-hidden flex-shrink-0"
+              title={t("common.back")}
+            >
+              <ArrowLeft size={16} />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className={`relative transition-all duration-300 ${

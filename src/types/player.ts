@@ -45,4 +45,5 @@ export interface PlayerActions {
   setDuration: (duration: number) => void
   setIsPlaying: (isPlaying: boolean) => void
   setIsLoading: (isLoading: boolean) => void
+  playPlaylist: (songs: Song[], startShuffle?: boolean) => void
 }
