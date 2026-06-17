@@ -146,6 +146,7 @@ function mapPlaylist(p: RustPlaylistData): Playlist {
 function mapHomeItem(item: RustHomeItem): Song | Album | Artist | Playlist {
   switch (item.type) {
     case "song":
+    case "video":
       return {
         id: item.id || item.video_id || "",
         videoId: item.video_id || item.id || "",
@@ -154,6 +155,7 @@ function mapHomeItem(item: RustHomeItem): Song | Album | Artist | Playlist {
         artistId: item.artist_id,
         albumArtUrl: item.cover_url,
         duration: item.duration || 0,
+        contentType: item.type === "video" ? "video" : "song",
       } as Song
     case "album":
       return {

@@ -73,6 +73,8 @@ pub struct SongData {
     pub album_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub album_art_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_type: Option<String>,
     pub duration: u32,
 }
 
@@ -349,11 +351,14 @@ fn extract_artist_from_item(item: &serde_json::Value) -> (String, Option<String>
                 .map(|s| s.to_string());
             if let Some(text) = flex_col.and_then(get_text_from_runs) {
                 if !text.is_empty() {
+                    if let Some(artist) = text.splitn(2, " • ").nth(1) {
+                        return (artist.trim().to_string(), artist_id);
+                    }
                     if let Some(artist) = text.splitn(2, " - ").nth(1) {
-                        return (artist.to_string(), artist_id);
+                        return (artist.trim().to_string(), artist_id);
                     }
                     if let Some(artist) = text.splitn(2, "  ").nth(1) {
-                        return (artist.to_string(), artist_id);
+                        return (artist.trim().to_string(), artist_id);
                     }
                     if let Some(artist) = text.splitn(2, '·').nth(1) {
                         return (artist.trim().to_string(), artist_id);
@@ -369,6 +374,16 @@ fn extract_artist_from_item(item: &serde_json::Value) -> (String, Option<String>
 fn parse_song_from_music_item(item: &serde_json::Value) -> Option<SongData> {
     let video_id = extract_video_id_from_item(item)?;
     let title = extract_title_from_item(item);
+    
+    let flex_col = item
+        .get("flexColumns")
+        .and_then(|f| f.as_array())
+        .and_then(|a| a.get(1))
+        .and_then(|c| c.get("musicResponsiveListItemFlexColumnRenderer"))
+        .and_then(|r| r.get("text"));
+    let subtitle_text = flex_col.and_then(get_text_from_runs).unwrap_or_default();
+    let is_video = subtitle_text.starts_with("Video");
+
     let (artist, artist_id) = extract_artist_from_item(item);
     let album_art_url = extract_thumbnail_from_item(item);
     let duration = extract_duration_from_item(item);
@@ -381,6 +396,7 @@ fn parse_song_from_music_item(item: &serde_json::Value) -> Option<SongData> {
         album: None,
         album_id: None,
         album_art_url,
+        content_type: Some(if is_video { "video".to_string() } else { "song".to_string() }),
         duration,
     })
 }
@@ -471,8 +487,9 @@ fn parse_two_row_item(item: &serde_json::Value) -> Option<HomeItem> {
         }),
         _ => {
             if let Some(vid) = &video_id {
+                let is_video = subtitle.as_ref().map(|s| s.starts_with("Video")).unwrap_or(false);
                 Some(HomeItem {
-                    item_type: "song".to_string(),
+                    item_type: if is_video { "video".to_string() } else { "song".to_string() },
                     id: Some(vid.clone()),
                     video_id: Some(vid.clone()),
                     browse_id: None,
@@ -547,7 +564,7 @@ fn parse_music_responsive_list_item(item: &serde_json::Value) -> Option<HomeItem
     let list_item = item.get("musicResponsiveListItemRenderer")?;
     let song = parse_song_from_music_item(list_item)?;
     Some(HomeItem {
-        item_type: "song".to_string(),
+        item_type: song.content_type.clone().unwrap_or_else(|| "song".to_string()),
         id: Some(song.id.clone()),
         video_id: Some(song.video_id),
         browse_id: None,
@@ -1141,15 +1158,19 @@ fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults
         let cover_url = extract_thumbnail_from_item(item);
         let duration = extract_duration_from_item(item);
 
-        let artist = if let Some(a) = subtitle_text.splitn(2, " - ").nth(1) {
-            a.to_string()
+        let artist = if let Some(a) = subtitle_text.splitn(2, " • ").nth(1) {
+            a.trim().to_string()
+        } else if let Some(a) = subtitle_text.splitn(2, " - ").nth(1) {
+            a.trim().to_string()
         } else if let Some(a) = subtitle_text.splitn(2, "  ").nth(1) {
-            a.to_string()
+            a.trim().to_string()
         } else if let Some(a) = subtitle_text.splitn(2, '·').nth(1) {
             a.trim().to_string()
         } else {
-            subtitle_text
+            subtitle_text.clone()
         };
+
+        let is_video = subtitle_text.starts_with("Video");
 
         results.songs.push(SongData {
             id: video_id.clone(),
@@ -1160,6 +1181,7 @@ fn parse_search_music_item(item: &serde_json::Value, results: &mut SearchResults
             album: None,
             album_id: None,
             album_art_url: cover_url,
+            content_type: Some(if is_video { "video".to_string() } else { "song".to_string() }),
             duration,
         });
         return;
