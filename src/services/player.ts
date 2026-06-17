@@ -22,6 +22,20 @@ class PlayerService {
 
   private patch(state: Partial<ReturnType<typeof usePlayerStore.getState>>) {
     usePlayerStore.setState(state)
+    const s = usePlayerStore.getState()
+    import("@tauri-apps/api/event").then(({ emit }) => {
+      emit("player-state-changed", {
+        currentSong: s.currentSong,
+        isPlaying: s.isPlaying,
+        isLoading: s.isLoading,
+        progress: s.progress,
+        duration: s.duration,
+        shuffle: s.shuffle,
+        repeat: s.repeat,
+        queue: s.queue,
+        queueIndex: s.queueIndex,
+      })
+    })
   }
 
   get currentSong(): Song | null {
