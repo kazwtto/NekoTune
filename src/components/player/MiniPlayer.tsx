@@ -126,7 +126,6 @@ export default function MiniPlayer() {
 
   const isFav = currentSong ? favorites.includes(currentSong.videoId) : false
 
-
   const { width, height } = dimensions
 
   const showProgress = height >= 50

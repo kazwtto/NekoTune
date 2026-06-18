@@ -36,7 +36,6 @@ export default function CacheSection() {
   return (
     <div className="flex flex-col gap-8 px-4">
 
-      {/* ═══ Audio Cache ═══ */}
       <div>
         <h3 className="mb-5 text-xs font-semibold text-secondary">{t("settings.audioCache")}</h3>
         <div className="ml-3 divide-y divide-border">
@@ -116,7 +115,6 @@ export default function CacheSection() {
         )}
       </div>
 
-      {/* ═══ Image Cache ═══ */}
       <div>
         <h3 className="mb-5 text-xs font-semibold text-secondary">{t("settings.imageCache")}</h3>
         <div className="ml-3 divide-y divide-border">
@@ -194,7 +192,6 @@ export default function CacheSection() {
         )}
       </div>
 
-      {/* ═══ Metadata Cache ═══ */}
       <div>
         <h3 className="mb-5 text-xs font-semibold text-secondary">{t("settings.songMetadataCache")}</h3>
         <div className="ml-3 divide-y divide-border">
@@ -231,7 +228,6 @@ export default function CacheSection() {
         )}
       </div>
 
-      {/* ═══ List Buffer ═══ */}
       <div>
         <h3 className="mb-5 text-xs font-semibold text-secondary">{t("settings.listBuffer")}</h3>
         <div className="ml-3 divide-y divide-border">
@@ -258,7 +254,6 @@ export default function CacheSection() {
         )}
       </div>
 
-      {/* ═══ Prefetch ═══ */}
       <div>
         <h3 className="mb-5 text-xs font-semibold text-secondary">{t("settings.prefetchCache")}</h3>
         <div className="ml-3 divide-y divide-border">

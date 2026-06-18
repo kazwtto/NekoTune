@@ -19,13 +19,8 @@ export default function DownloadedSongs() {
         const folder = downloadFolder || ""
         if (folder) {
           const results = await invoke<LocalSong[]>("cmd_scan_music_folder", { path: folder })
-          // Optional: filter songs that actually have our custom tag if we want to be strict,
-          // but for now showing everything in the folder is probably what the user expects.
           setSongs(results)
         } else {
-            // If no folder is configured, we can't scan.
-            // But get_download_folder in backend has a default.
-            // We should probably get that default if downloadFolder is empty.
             const defaultDir = await invoke<string>("cmd_get_default_music_dir")
             const nekotuneDir = defaultDir + (defaultDir.endsWith('/') || defaultDir.endsWith('\\') ? '' : '/') + "NekoTune"
             const results = await invoke<LocalSong[]>("cmd_scan_music_folder", { path: nekotuneDir }).catch(() => [])

@@ -18,7 +18,6 @@ export default function AccountSection() {
     }
   }, [])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => stopPolling()
   }, [stopPolling])
@@ -28,13 +27,11 @@ export default function AccountSection() {
     setIsLoggingIn(true)
 
     try {
-      // 1) Open the login window
       await invoke("cmd_open_login_window")
 
-      // 2) Start polling for cookies every 2 seconds
       stopPolling()
       let attempts = 0
-      const maxAttempts = 150 // 5 minutes
+      const maxAttempts = 150
 
       pollRef.current = setInterval(async () => {
         attempts++
@@ -50,7 +47,6 @@ export default function AccountSection() {
           const result = await invoke<string | null>("cmd_poll_login_cookies")
 
           if (result) {
-            // Login successful — cookies were captured
             stopPolling()
             setAccount({
               cookie: result,
@@ -62,11 +58,9 @@ export default function AccountSection() {
         } catch (e) {
           const errStr = String(e)
           if (errStr.includes("no-window")) {
-            // Window was closed by user
             stopPolling()
             setIsLoggingIn(false)
           }
-          // Other errors: keep polling (transient)
         }
       }, 2000)
     } catch (e) {

@@ -15,6 +15,7 @@ async fn get_downloader() -> Result<&'static yt_dlp::Downloader, String> {
             yt_dlp::Downloader::with_new_binaries(libs_dir, output_dir)
                 .await
                 .map_err(|e| format!("Failed to install yt-dlp: {e}"))?
+                .with_args(vec!["--js-runtimes".to_string(), "node".to_string()])
                 .build()
                 .await
                 .map_err(|e| format!("Failed to build downloader: {e}"))

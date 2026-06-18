@@ -729,10 +729,10 @@ pub async fn fetch_home_feed() -> Result<HomeFeedData, String> {
         }
     }
 
-    println!("[home] sections={}, tags={}", sections.len(), tags.len());
-    for t in &tags {
-        println!("[home] tag: {}", t.title);
-    }
+    // println!("[home] sections={}, tags={}", sections.len(), tags.len());
+    // for t in &tags {
+    //     println!("[home] tag: {}", t.title);
+    // }
 
     Ok(HomeFeedData { sections, tags })
 }

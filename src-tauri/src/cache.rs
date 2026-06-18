@@ -5,10 +5,6 @@ use std::path::PathBuf;
 use std::sync::{LazyLock, Mutex};
 use tauri::AppHandle;
 
-// ═══════════════════════════════════════════════════════════════
-// Cache Index (LRU)
-// ═══════════════════════════════════════════════════════════════
-
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct EntryMeta {
     path: String,
@@ -33,10 +29,6 @@ pub struct CacheStats {
 
 static AUDIO_INDEX: LazyLock<Mutex<CacheIndex>> = LazyLock::new(|| Mutex::new(CacheIndex::default()));
 static IMAGE_INDEX: LazyLock<Mutex<CacheIndex>> = LazyLock::new(|| Mutex::new(CacheIndex::default()));
-
-// ═══════════════════════════════════════════════════════════════
-// Helpers
-// ═══════════════════════════════════════════════════════════════
 
 fn now_ms() -> u64 {
     std::time::SystemTime::now()
@@ -72,20 +64,20 @@ fn index_path(app: &AppHandle, kind: &str) -> PathBuf {
 
 fn load_index(app: &AppHandle, kind: &str) -> CacheIndex {
     let path = index_path(app, kind);
-    eprintln!("[Cache] load_index: reading {}", path.display());
+    // eprintln!("[Cache] load_index: reading {}", path.display());
     match fs::read_to_string(&path) {
         Ok(content) => match serde_json::from_str::<CacheIndex>(&content) {
             Ok(index) => {
-                eprintln!("[Cache] load_index: loaded {} entries from {}", index.entries.len(), kind);
+                // eprintln!("[Cache] load_index: loaded {} entries from {}", index.entries.len(), kind);
                 index
             }
-            Err(e) => {
-                eprintln!("[Cache] load_index: parse error for {}: {}", kind, e);
+            Err(_) => {
+                // eprintln!("[Cache] load_index: parse error for {}: {}", kind, e);
                 CacheIndex::default()
             }
         },
-        Err(e) => {
-            eprintln!("[Cache] load_index: read error for {}: {}", kind, e);
+        Err(_e) => {
+            // eprintln!("[Cache] load_index: read error for {}: {}", kind, e);
             CacheIndex::default()
         }
     }
@@ -94,16 +86,16 @@ fn load_index(app: &AppHandle, kind: &str) -> CacheIndex {
 pub fn init_caches(app: &AppHandle) {
     let audio = load_index(app, "audio");
     let images = load_index(app, "images");
-    for (k, v) in &audio.entries {
-        eprintln!("[Cache] init audio: key={} size={} path={}", k, v.size, v.path);
-    }
-    eprintln!(
-        "[Cache] init_caches: audio={} entries ({} bytes), images={} entries, root={}",
-        audio.entries.len(),
-        audio.entries.values().map(|e| e.size).sum::<u64>(),
-        images.entries.len(),
-        cache_root(app).display()
-    );
+    // for (k, v) in &audio.entries {
+    //     eprintln!("[Cache] init audio: key={} size={} path={}", k, v.size, v.path);
+    // }
+    // eprintln!(
+    //     "[Cache] init_caches: audio={} entries ({} bytes), images={} entries, root={}",
+    //     audio.entries.len(),
+    //     audio.entries.values().map(|e| e.size).sum::<u64>(),
+    //     images.entries.len(),
+    //     cache_root(app).display()
+    // );
     *AUDIO_INDEX.lock().unwrap() = audio;
     *IMAGE_INDEX.lock().unwrap() = images;
 }
@@ -112,14 +104,14 @@ fn save_index(app: &AppHandle, kind: &str, index: &CacheIndex) {
     let path = index_path(app, kind);
     match serde_json::to_string_pretty(index) {
         Ok(json) => {
-            if let Err(e) = fs::write(&path, &json) {
-                eprintln!("[Cache] save_index: write error for {}: {}", kind, e);
+            if let Err(_e) = fs::write(&path, &json) {
+                // eprintln!("[Cache] save_index: write error for {}: {}", kind, e);
             } else {
-                eprintln!("[Cache] save_index: saved {} entries to {}", index.entries.len(), path.display());
+                // eprintln!("[Cache] save_index: saved {} entries to {}", index.entries.len(), path.display());
             }
         }
-        Err(e) => {
-            eprintln!("[Cache] save_index: serialize error for {}: {}", kind, e);
+        Err(_e) => {
+            // eprintln!("[Cache] save_index: serialize error for {}: {}", kind, e);
         }
     }
 }
@@ -157,7 +149,6 @@ fn detect_image_ext(data: &[u8]) -> &'static str {
 }
 
 fn evict_lru(index: &mut CacheIndex, _dir: &PathBuf, max_entries: usize, max_bytes: u64) {
-    // evict por count
     while index.entries.len() > max_entries {
         if let Some((oldest_key, oldest_meta)) = index
             .entries
@@ -172,7 +163,6 @@ fn evict_lru(index: &mut CacheIndex, _dir: &PathBuf, max_entries: usize, max_byt
         }
     }
 
-    // evict por tamanho
     let mut total: u64 = index.entries.values().map(|e| e.size).sum();
     while total > max_bytes && !index.entries.is_empty() {
         if let Some((oldest_key, oldest_meta)) = index
@@ -190,10 +180,6 @@ fn evict_lru(index: &mut CacheIndex, _dir: &PathBuf, max_entries: usize, max_byt
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// Audio Cache
-// ═══════════════════════════════════════════════════════════════
-
 pub fn audio_get_path(app: &AppHandle, video_id: &str) -> Option<String> {
     let mut index = AUDIO_INDEX.lock().unwrap();
     let result = index.entries.get(video_id).and_then(|entry| {
@@ -201,7 +187,7 @@ pub fn audio_get_path(app: &AppHandle, video_id: &str) -> Option<String> {
         if path.exists() {
             Some(entry.path.clone())
         } else {
-            eprintln!("[Cache] audio_get_path: file not found on disk: {}", entry.path);
+            // eprintln!("[Cache] audio_get_path: file not found on disk: {}", entry.path);
             None
         }
     });
@@ -210,14 +196,14 @@ pub fn audio_get_path(app: &AppHandle, video_id: &str) -> Option<String> {
             entry.last_accessed = now_ms();
         }
         save_index(app, "audio", &index);
-        eprintln!("[Cache] audio_get_path: HIT for {}", video_id);
+        // eprintln!("[Cache] audio_get_path: HIT for {}", video_id);
         return result;
     }
-    eprintln!(
-        "[Cache] audio_get_path: MISS for {} (index has {} entries)",
-        video_id,
-        index.entries.len()
-    );
+    // eprintln!(
+    //     "[Cache] audio_get_path: MISS for {} (index has {} entries)",
+    //     video_id,
+    //     index.entries.len()
+    // );
     if index.entries.contains_key(video_id) {
         index.entries.remove(video_id);
         save_index(app, "audio", &index);
@@ -272,12 +258,10 @@ pub async fn audio_download(
     max_entries: usize,
     max_storage_mb: u64,
 ) -> Result<String, String> {
-    // check if already cached
     if let Some(path) = audio_get_path(app, video_id) {
         return Ok(path);
     }
 
-    // ensure yt-dlp binaries
     let libs_dir = std::env::temp_dir().join("nekotune").join("libs");
     let output_dir = std::env::temp_dir().join("nekotune").join("output");
     fs::create_dir_all(&libs_dir).ok();
@@ -300,7 +284,6 @@ pub async fn audio_download(
         return Err("yt-dlp binary not found".to_string());
     }
 
-    // quality mapping
     let audio_quality = match quality {
         "low" => "5",
         "medium" => "3",
@@ -336,7 +319,10 @@ pub async fn audio_download(
         .arg(audio_quality)
         .arg("--no-playlist")
         .arg("--js-runtimes")
-        .arg("nodejs")
+        .arg("node")
+        .arg("--force-ipv4")
+        .arg("--extractor-args")
+        .arg("youtube:player_client=web,web_safari")
         .arg("--ffmpeg-location")
         .arg(&libs_dir)
         .arg("-o")
@@ -358,7 +344,6 @@ pub async fn audio_download(
         return Err(format!("yt-dlp error: {}", err));
     }
 
-    // find the output file
     let mut final_path = cache_dir.join(format!("{}.{}", video_id, ext));
     if !final_path.exists() {
         for alt in ["opus", "m4a", "webm"] {
@@ -374,7 +359,6 @@ pub async fn audio_download(
         return Err("Download failed: file not found".to_string());
     }
 
-    // read and store in index
     let data = fs::read(&final_path).map_err(|e| format!("Failed to read cached file: {e}"))?;
     let path_str = final_path.to_string_lossy().to_string();
 
@@ -395,13 +379,9 @@ pub async fn audio_download(
     );
     save_index(app, "audio", &index);
 
-    eprintln!("[Cache] audio_download: saved {} -> {} ({} bytes)", video_id, path_str, data.len());
+    // eprintln!("[Cache] audio_download: saved {} -> {} ({} bytes)", video_id, path_str, data.len());
     Ok(path_str)
 }
-
-// ═══════════════════════════════════════════════════════════════
-// Image Cache
-// ═══════════════════════════════════════════════════════════════
 
 pub fn image_get_path(app: &AppHandle, url: &str) -> Option<String> {
     let hash = url_hash(url);
@@ -489,12 +469,10 @@ pub async fn image_download(
     max_entries: usize,
     max_storage_mb: u64,
 ) -> Result<String, String> {
-    // check if already cached
     if let Some(path) = image_get_path(app, url) {
         return Ok(path);
     }
 
-    // download raw bytes
     let client = reqwest::Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
         .build()
@@ -511,7 +489,6 @@ pub async fn image_download(
         .await
         .map_err(|e| format!("Failed to read image bytes: {e}"))?;
 
-    // re-encode to target format/quality
     let img = image::load_from_memory(&raw_bytes)
         .map_err(|e| format!("Failed to decode image: {e}"))?;
 
@@ -529,7 +506,6 @@ pub async fn image_download(
             buf.into_inner()
         }
         _ => {
-            // jpg — re-encode with quality
             let quality_num = match quality {
                 "low" => 50u8,
                 "medium" => 75u8,
@@ -545,10 +521,8 @@ pub async fn image_download(
         }
     };
 
-    // store
     let path = image_store(app, url, &encoded);
 
-    // evict
     let dir = image_dir(app);
     let mut index = IMAGE_INDEX.lock().unwrap();
     evict_lru(

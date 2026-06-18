@@ -51,7 +51,6 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
         return { type: "search", id: val }
       }
     } catch {
-      // Not a URL
     }
 
     if (val.startsWith("VLPL") || val.startsWith("VLRD")) return { type: "playlist", id: val }
@@ -141,8 +140,6 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
 
   return (
     <>
-      {/* ── LOADER FLUTUANTE ── */}
-      {/* É renderizado no lugar do modal enquanto carrega */}
       <AnimatePresence>
         {isLoading && isOpen && (
           <motion.div
@@ -158,11 +155,8 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
         )}
       </AnimatePresence>
 
-      {/* ── MODAL PRINCIPAL ── */}
-      {/* Note o "&& !isLoading". O Modal literalmente fecha durante o loading e abre de novo ao finalizar. */}
       <Modal open={isOpen && !isLoading} onClose={onClose} width={480}>
         <motion.div layout className="flex flex-col gap-5">
-          {/* Header */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center flex-shrink-0">
               <ListMusic size={18} className="text-accent" />
@@ -177,7 +171,6 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
             </div>
           </div>
 
-          {/* Input */}
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -196,7 +189,6 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
             </button>
           </div>
 
-          {/* Error */}
           <AnimatePresence>
             {error && (
               <motion.div
@@ -213,10 +205,8 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
             )}
           </AnimatePresence>
 
-          {/* Song list */}
           {songs.length > 0 && (
             <motion.div layout className="flex flex-col gap-3">
-              {/* List bar */}
               <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <span className="text-xs font-semibold text-secondary uppercase tracking-wider">
                   {songs.length} {t("library.songs", "músicas")}
@@ -232,7 +222,6 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
                 </button>
               </div>
 
-              {/* Rows */}
               <div className="max-h-[240px] overflow-y-auto flex flex-col gap-0.5 pr-0.5 custom-scrollbar">
                 <AnimatePresence>
                   {songs.map((song, i) => {
@@ -251,7 +240,6 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
                             : "hover:bg-white/[0.04]"
                         }`}
                       >
-                        {/* Checkbox */}
                         <div className={`w-[14px] h-[14px] rounded-[3px] flex items-center justify-center flex-shrink-0 border transition-colors ${
                           isSelected
                             ? "bg-accent border-accent text-black"
@@ -271,7 +259,6 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
                           </AnimatePresence>
                         </div>
 
-                        {/* Thumbnail */}
                         <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 bg-white/[0.05] flex items-center justify-center">
                           {(song.thumbnail || song.albumArtUrl || song.videoId) ? (
                             <img
@@ -284,7 +271,6 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
                           )}
                         </div>
 
-                        {/* Info */}
                         <div className="flex-1 min-w-0 flex items-center gap-2">
                           <p className={`text-[13px] truncate transition-colors ${
                             isSelected ? "text-accent font-medium" : "text-primary group-hover:text-white"
@@ -300,7 +286,6 @@ export default function AddSongsModal({ isOpen, onClose, playlistId }: AddSongsM
                 </AnimatePresence>
               </div>
 
-              {/* Footer */}
               <motion.div layout className="flex items-center justify-between pt-3 border-t border-white/10">
                 <span className="text-xs text-secondary">
                   <span className="font-semibold text-primary">{selectedIds.size}</span>

@@ -138,7 +138,6 @@ fn parse_song_from_path(path: &Path) -> Option<LocalSong> {
                 }
             }
 
-            // Extract custom videoId tag
             if let Some(vid) = tag.get(&ItemKey::Unknown("NEKOTUNE_VIDEO_ID".to_string())).and_then(|i| i.value().text()) {
                 video_id = Some(vid.to_string());
             }

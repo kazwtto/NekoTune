@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { useTranslation } from "react-i18next"
 import { useUiStore } from "../stores/uiStore"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
-  Palette, Headphones, Play, Globe, Info, ChevronDown, FolderOpen, Download, Database, UserCircle,
+  Palette, Headphones, Play, Globe, Info, ChevronDown, FolderOpen, Download, Database, Trash2,
 } from "lucide-react"
 
 import AppearanceSection from "../components/settings/AppearanceSection"
@@ -15,18 +15,24 @@ import LocalMusicSection from "../components/settings/LocalMusicSection"
 import DownloadSection from "../components/settings/DownloadSection"
 import CacheSection from "../components/settings/CacheSection"
 import AccountSection from "../components/settings/AccountSection"
+import DangerZoneSection from "../components/settings/DangerZoneSection"
 
 const sections = [
   { id: "appearance", labelKey: "settings.appearance", icon: Palette },
+  { id: "language", labelKey: "settings.language", icon: Globe },
   { id: "audio", labelKey: "settings.audio", icon: Headphones },
   { id: "playback", labelKey: "settings.playback", icon: Play },
   { id: "download", labelKey: "settings.download", icon: Download },
   { id: "cache", labelKey: "settings.cache", icon: Database },
   { id: "localMusic", labelKey: "settings.localMusic", icon: FolderOpen },
-  { id: "account", labelKey: "settings.account", icon: UserCircle },
-  { id: "language", labelKey: "settings.language", icon: Globe },
+  // { id: "account", labelKey: "settings.account", icon: UserCircle },
+  { id: "dangerZone", labelKey: "settings.dangerZone", icon: Trash2 },
   { id: "about", labelKey: "settings.about", icon: Info },
 ]
+
+const EDGE_EPSILON_PX = 2
+const TRIGGER_LINE_PX = 4
+const MAX_LOCK_MS = 1000
 
 export default function SettingsPage() {
   const { t } = useTranslation()
@@ -35,29 +41,100 @@ export default function SettingsPage() {
   const [active, setActive] = useState("appearance")
   const scrollRef = useRef<HTMLDivElement>(null)
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const scrollingRef = useRef(false)
+  const pendingUnlockRef = useRef<(() => void) | null>(null)
+  const pendingTimeoutRef = useRef<number | undefined>(undefined)
+
+  const recompute = useCallback(() => {
+    if (scrollingRef.current) return
+    const container = scrollRef.current
+    if (!container) return
+
+    const { scrollTop, scrollHeight, clientHeight } = container
+
+    if (scrollTop <= EDGE_EPSILON_PX) {
+      setActive(sections[0].id)
+      return
+    }
+
+    if (scrollTop + clientHeight >= scrollHeight - EDGE_EPSILON_PX) {
+      setActive(sections[sections.length - 1].id)
+      return
+    }
+
+    const triggerY = container.getBoundingClientRect().top + TRIGGER_LINE_PX
+
+    let next = sections[0].id
+    for (const s of sections) {
+      const el = sectionRefs.current[s.id]
+      if (!el) continue
+      if (el.getBoundingClientRect().top <= triggerY) {
+        next = s.id
+      }
+    }
+
+    setActive(next)
+  }, [])
+
+  const cancelPendingUnlock = useCallback(() => {
+    const container = scrollRef.current
+    if (container && pendingUnlockRef.current) {
+      container.removeEventListener("scrollend", pendingUnlockRef.current)
+    }
+    if (pendingTimeoutRef.current !== undefined) {
+      window.clearTimeout(pendingTimeoutRef.current)
+    }
+    pendingUnlockRef.current = null
+    pendingTimeoutRef.current = undefined
+  }, [])
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActive(entry.target.id)
-          }
-        }
-      },
-      { root: scrollRef.current, rootMargin: "-50% 0px -50% 0px" }
-    )
+    if (!visible) return
+    const container = scrollRef.current
+    if (!container) return
 
-    const elements = Object.values(sectionRefs.current).filter(Boolean) as HTMLDivElement[]
-    elements.forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [visible])
+    scrollingRef.current = false
+    recompute()
+
+    let scrollScheduled = false
+    function onScroll() {
+      if (scrollScheduled) return
+      scrollScheduled = true
+      requestAnimationFrame(() => {
+        scrollScheduled = false
+        recompute()
+      })
+    }
+
+    container.addEventListener("scroll", onScroll, { passive: true })
+
+    return () => {
+      container.removeEventListener("scroll", onScroll)
+      cancelPendingUnlock()
+      scrollingRef.current = false
+    }
+  }, [visible, recompute, cancelPendingUnlock])
 
   function scrollTo(id: string) {
     const el = sectionRefs.current[id]
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    const container = scrollRef.current
+    if (!el || !container) return
+
+    cancelPendingUnlock()
+    setActive(id)
+    scrollingRef.current = true
+
+    const unlock = () => {
+      cancelPendingUnlock()
+      scrollingRef.current = false
+      recompute()
     }
+
+    pendingUnlockRef.current = unlock
+    container.addEventListener("scrollend", unlock, { once: true })
+    pendingTimeoutRef.current = window.setTimeout(unlock, MAX_LOCK_MS)
+
+    el.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
   return (
@@ -122,6 +199,7 @@ export default function SettingsPage() {
                   {s.id === "localMusic" && <LocalMusicSection />}
                   {s.id === "account" && <AccountSection />}
                   {s.id === "language" && <LanguageSection />}
+                  {s.id === "dangerZone" && <DangerZoneSection />}
                   {s.id === "about" && <AboutSection />}
                 </div>
               ))}

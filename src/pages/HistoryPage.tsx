@@ -42,7 +42,7 @@ export default function HistoryPage() {
         onConfirm={clearHistory}
         title={t("library.playHistory")}
         message={t("common.confirmClearHistory")}
-        confirmText={t("common.clear")}
+        confirmButtonProps={{ children: t("common.clear") }}
       />
     </motion.div>
   )

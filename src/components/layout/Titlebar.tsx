@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { useNavigate, useLocation } from "react-router-dom"
-import { Cat, Minus, Square, X, Maximize2, Settings, Search, ArrowLeft } from "lucide-react"
+import { Cat, Minus, Square, X, ChevronDown, Maximize2, Settings, Search, ArrowLeft } from "lucide-react"
 import { APP_NAME } from "../../utils/constants"
 import SearchInput from "../search/SearchInput"
 import SearchHistory from "../search/SearchHistory"
@@ -186,19 +186,26 @@ export default function Titlebar() {
         onClose={() => setShowCloseConfirm(false)}
         title={t("common.closeAppTitle")}
         message={t("common.closeAppMessage")}
+        buttonJustify="justify-between"
         actions={
           <>
             <Button
+              truncate={true}
+              truncateType="split"
               variant="primary"
               onClick={() => {
                 setShowCloseConfirm(false)
                 invoke("cmd_minimize_to_tray")
               }}
+              icon={<ChevronDown />}
               className="text-xs bg-white/10 hover:bg-white/20 text-white border-transparent"
             >
               {t("common.minimizeToTray")}
             </Button>
             <Button
+              truncate={true}
+              truncateType="split"
+              icon={<X />}
               variant="primary"
               onClick={() => appWindow.close()}
               className="text-xs bg-error hover:bg-error/90 border-transparent"

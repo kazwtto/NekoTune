@@ -142,7 +142,6 @@ fn cmd_open_login_window(app: tauri::AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn cmd_poll_login_cookies(app: tauri::AppHandle) -> Result<Option<String>, String> {
-    // Spawn on a separate task so cookies_for_url doesn't deadlock on Windows
     tauri::async_runtime::spawn(async move { login::read_login_cookies(&app).await })
         .await
         .map_err(|e| e.to_string())?
@@ -177,10 +176,6 @@ fn cmd_minimize_to_tray(app: tauri::AppHandle) -> Result<(), String> {
     }
     Ok(())
 }
-
-// ═══════════════════════════════════════════════════════════════
-// Cache Commands
-// ═══════════════════════════════════════════════════════════════
 
 #[tauri::command]
 async fn cmd_audio_cache_get_path(app: tauri::AppHandle, video_id: String) -> Result<Option<String>, String> {

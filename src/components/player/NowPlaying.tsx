@@ -66,9 +66,7 @@ export default function NowPlaying() {
           className="fixed inset-0 z-40 flex"
           style={{ background: "linear-gradient(180deg, #1a1040 0%, #0d1117 100%)" }}
         >
-          {/* Main Player */}
           <div className="flex flex-1 flex-col">
-            {/* Header */}
             <div className="flex items-center justify-between px-6 pt-5 pb-2">
               <button
                 onClick={() => setVisible(false)}
@@ -82,7 +80,6 @@ export default function NowPlaying() {
               <div className="w-10" />
             </div>
 
-            {/* Album Art */}
             <div className="flex flex-1 items-center justify-center px-8">
               <div className="relative aspect-square w-full max-w-[290px] overflow-hidden rounded-2xl shadow-2xl">
                 {currentSong.isLocal ? (
@@ -112,7 +109,6 @@ export default function NowPlaying() {
               </div>
             </div>
 
-            {/* Song Info */}
             <div className="px-8 pb-2">
               <h2 className="truncate text-center text-xl font-bold text-primary">
                 {currentSong.title.length > 40 ? `${currentSong.title.slice(0, 40)}...` : currentSong.title}
@@ -129,7 +125,6 @@ export default function NowPlaying() {
               </p>
             </div>
 
-            {/* Progress Bar */}
             <div className="px-8 pb-4">
               <div className="flex w-full items-center gap-3">
                 <span className="min-w-10 text-right text-xs tabular-nums text-muted">
@@ -154,7 +149,6 @@ export default function NowPlaying() {
               </div>
             </div>
 
-            {/* Transport Controls */}
             <div className="flex items-center justify-center gap-6 px-8 pb-3">
               <button
                 onClick={toggleShuffle}
@@ -206,7 +200,6 @@ export default function NowPlaying() {
               </button>
             </div>
 
-            {/* Bottom Row: Volume + Actions */}
             <div className="flex items-center justify-between px-8 pb-6 pt-2">
               <div className="flex items-center gap-2">
                 <button
@@ -261,7 +254,6 @@ export default function NowPlaying() {
             </div>
           </div>
 
-          {/* Lyrics Panel */}
           <AnimatePresence>
             {showLyrics && (
               <motion.div
@@ -283,7 +275,6 @@ export default function NowPlaying() {
             )}
           </AnimatePresence>
 
-          {/* Queue Panel */}
           <AnimatePresence>
             {showQueue && (
               <motion.div
@@ -348,7 +339,7 @@ export default function NowPlaying() {
             onConfirm={clearQueue}
             title={t("common.queue")}
             message={t("common.confirmClearQueue")}
-            confirmText={t("common.clear")}
+            confirmButtonProps={{children: t("common.clear")}}
           />
         </motion.div>
       )}

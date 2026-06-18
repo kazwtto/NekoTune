@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom"
+import { useParams, useLocation } from "react-router-dom"
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { useTranslation } from "react-i18next"
@@ -13,6 +13,19 @@ import { Play, Shuffle, Plus, MoreHorizontal, Music, ListMusic, Heart, Star, Spa
 import { proxyUrl } from "../services/proxy"
 import { useScrollPersistence } from "../hooks/useScrollPersistence"
 import { useUiStore } from "../stores/uiStore"
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.04 },
+  },
+}
+
+const item = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.2 } },
+}
 
 const ICONS: Record<string, any> = {
   "list-music": ListMusic,
@@ -35,6 +48,7 @@ const ICONS: Record<string, any> = {
 
 export default function PlaylistPage() {
   const { id } = useParams()
+  const location = useLocation()
   const { t } = useTranslation()
   const setPlaylistModalVisible = useUiStore((s) => s.setPlaylistModalVisible)
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null)
@@ -97,6 +111,7 @@ export default function PlaylistPage() {
 
   return (
     <motion.div
+      key={location.pathname}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -198,17 +213,18 @@ export default function PlaylistPage() {
         ref={scrollRef}
         className="flex-1 overflow-y-auto rounded-2xl border border-white/10 bg-white/[0.03] shadow-lg mb-8"
       >
-        <div className="flex flex-col">
+        <motion.div variants={container} initial="hidden" animate="show" className="flex flex-col">
           {playlist!.songs?.map((song, i) => (
-            <SongCard 
-              key={song.videoId} 
-              song={song} 
-              index={i} 
-              variant="table" 
-              playlistId={isLocal ? playlist!.id : undefined}
-            />
+            <motion.div key={song.videoId} variants={item}>
+              <SongCard 
+                song={song} 
+                index={i} 
+                variant="table" 
+                playlistId={isLocal ? playlist!.id : undefined}
+              />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {menuPos && (

@@ -259,7 +259,6 @@ class PlayerService {
       const duration = dur > 0 ? dur : this.store.duration
       usePlayerStore.setState({ progress: current, duration })
       
-      // Emit lightweight progress event for floating windows
       import("@tauri-apps/api/event").then(({ emit }) => {
         emit("player-progress-changed", { progress: current, duration })
       })

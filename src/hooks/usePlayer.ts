@@ -14,12 +14,10 @@ function restoreOnce() {
   const saved = loadPlayerState()
   if (!saved) return
 
-  // Always restore queueHistory
   if (saved.queueHistory && saved.queueHistory.length > 0) {
     usePlayerStore.setState({ queueHistory: saved.queueHistory })
   }
 
-  // Restore full player state if there was a song playing
   if (saved.currentSong) {
     usePlayerStore.setState({
       currentSong: saved.currentSong,

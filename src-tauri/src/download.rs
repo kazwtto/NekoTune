@@ -176,7 +176,6 @@ pub async fn cmd_download_song(
         active.insert(video_id.clone());
     }
 
-    // Defer removal from ACTIVE_DOWNLOADS
     struct DownloadGuard(String);
     impl Drop for DownloadGuard {
         fn drop(&mut self) {
@@ -197,7 +196,6 @@ pub async fn cmd_download_song(
     std::fs::create_dir_all(&libs_dir).ok();
     std::fs::create_dir_all(&output_dir).ok();
 
-    // We use the crate to ensure binaries are present
     let _ = yt_dlp::Downloader::with_new_binaries(libs_dir.clone(), output_dir)
         .await
         .map_err(|e| format!("Failed to install yt-dlp: {e}"))?
@@ -271,7 +269,6 @@ pub async fn cmd_download_song(
     let mut final_path = folder.join(format!("{}.{}", video_id, ext));
     
     if !final_path.exists() {
-        // Check for common alternative extensions
         let alts = ["opus", "m4a", "webm"];
         for alt in alts {
             let alt_path = folder.join(format!("{}.{}", video_id, alt));

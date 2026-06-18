@@ -9,10 +9,11 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "lint": "eslint .",
-    "build:app": "pwsh -File ./build.ps1",
+    "erros": "npx tsc --noEmit && cd src-tauri && cargo check",
+    "build:app": "powershell -File ./build.ps1",
     "build:app:unix": "bash ./build.sh",
-    "build:app:clean": "pwsh -File ./build.ps1 -Clean",
-    "build:app:release": "pwsh -File ./build.ps1 -Release"
+    "build:app:clean": "powershell -File ./build.ps1 -Clean",
+    "build:app:release": "powershell -File ./build.ps1 -Release"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.60.0",

@@ -227,7 +227,12 @@
     "accountLoginHint": "Conclua o login na janela que acabou de abrir.",
     "accountLoginError": "Login realizado, mas nenhum cookie de sessão foi capturado. Tente novamente.",
     "accountActive": "Conectado",
-    "accountAnonymous": "Conta Google"
+    "accountAnonymous": "Conta Google",
+    "dangerZone": "Zona de Perigo",
+    "deleteAllData": "Apagar Todos os Dados",
+    "deleteAllDataDesc": "Remove todas as configurações, favoritos, playlists, histórico e cache do app.",
+    "deleteAll": "Apagar Tudo",
+    "deleteAllDataConfirm": "Isso vai apagar todas as suas configurações, favoritos, playlists, histórico e cache. Esta ação não pode ser desfeita."
   },
   "home": {
     "greeting": "Boa noite",

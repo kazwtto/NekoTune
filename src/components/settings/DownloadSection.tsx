@@ -72,26 +72,28 @@ export default function DownloadSection() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-             <span className="text-sm font-medium text-primary">
-              {t("settings.downloadFormat")}
-            </span>
-            <Dropdown
-              value={settings.downloadFormat}
-              options={formats}
-              onChange={(v) => updateSettings({ downloadFormat: v as any })}
-            />
-          </div>
+          <div className="flex gap-4">
+            <div className="flex flex-1 flex-col gap-2">
+              <span className="text-sm font-medium text-primary">
+                {t("settings.downloadFormat")}
+              </span>
+              <Dropdown
+                value={settings.downloadFormat}
+                options={formats}
+                onChange={(v) => updateSettings({ downloadFormat: v as any })}
+              />
+            </div>
 
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-primary">
-              {t("settings.downloadQuality")}
-            </span>
-            <Dropdown
-              value={settings.downloadQuality}
-              options={qualities}
-              onChange={(v) => updateSettings({ downloadQuality: v as any })}
-            />
+            <div className="flex flex-1 flex-col gap-2">
+              <span className="text-sm font-medium text-primary">
+                {t("settings.downloadQuality")}
+              </span>
+              <Dropdown
+                value={settings.downloadQuality}
+                options={qualities}
+                onChange={(v) => updateSettings({ downloadQuality: v as any })}
+              />
+            </div>
           </div>
         </div>
       </div>

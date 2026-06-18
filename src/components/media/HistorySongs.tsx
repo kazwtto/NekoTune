@@ -17,14 +17,12 @@ export default function HistorySongs() {
     )
   }
 
-  // Group entries by formatted date, ensuring the song object exists
   const grouped = queueHistory.reduce((acc, entry, index) => {
     if (!entry || !entry.song) return acc
     
     const dateLabel = formatDate(entry.playedAt, t)
     if (!acc[dateLabel]) acc[dateLabel] = []
     
-    // Unshift to keep most recent at top of each group
     acc[dateLabel].unshift({ song: entry.song, index })
     return acc
   }, {} as Record<string, { song: any; index: number }[]>)

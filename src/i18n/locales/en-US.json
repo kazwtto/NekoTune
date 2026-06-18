@@ -218,7 +218,12 @@
     "accountLoginHint": "Complete sign-in in the window that just opened.",
     "accountLoginError": "Login succeeded but no session cookies were captured. Try again.",
     "accountActive": "Signed in",
-    "accountAnonymous": "Google Account"
+    "accountAnonymous": "Google Account",
+    "dangerZone": "Danger Zone",
+    "deleteAllData": "Delete All Data",
+    "deleteAllDataDesc": "Removes all settings, favorites, playlists, history, and app cache.",
+    "deleteAll": "Delete Everything",
+    "deleteAllDataConfirm": "This will delete all your settings, favorites, playlists, history, and cache. This action cannot be undone."
   },
   "home": {
     "greeting": "Good evening",

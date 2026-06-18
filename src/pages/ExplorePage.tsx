@@ -96,7 +96,6 @@ export default function ExplorePage() {
       className="relative h-full w-full overflow-y-auto"
     >
       <div className="pr-6 pb-6">
-        {/* Mood & Genres grid */}
         {!isLoading && !error && data?.moodGenres && data.moodGenres.length > 0 && (
           <div className="mb-4 pt-4">
             <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
@@ -107,7 +106,6 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {/* Loading */}
         {isLoading && (
           <div className="flex flex-col gap-6 pt-4">
             <div className="grid grid-cols-3 gap-1 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
@@ -131,7 +129,6 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {/* Error */}
         {error && (
           <div className="mt-12 flex flex-col items-center gap-3">
             <Music size={32} className="text-muted" />
@@ -139,7 +136,6 @@ export default function ExplorePage() {
           </div>
         )}
 
-        {/* Content sections */}
         {!isLoading && !error && data?.sections && data.sections.map((section, idx) => {
           const songs = section.items.filter(isSong)
           const albums = section.items.filter(isAlbum)
