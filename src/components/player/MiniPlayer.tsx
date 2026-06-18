@@ -19,7 +19,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { usePlayerStore, setIsSyncing } from "../../stores/playerStore"
 import { useLibraryStore } from "../../stores/libraryStore"
 import ProgressBar from "./ProgressBar"
-import { proxyUrl, highResThumb } from "../../services/proxy"
+import { highResThumb } from "../../services/proxy"
+import CachedImg from "../ui/CachedImg"
 import { getItem, setItem } from "../../utils/storage"
 
 const SETTINGS_KEY = "nekotune-floating-settings"
@@ -184,7 +185,7 @@ export default function MiniPlayer() {
                 <div className="thumb-placeholder h-full w-full" />
               )
             ) : currentSong?.albumArtUrl || currentSong?.videoId ? (
-              <img src={highResThumb(currentSong.videoId) || proxyUrl(currentSong.albumArtUrl)} alt={currentSong.title} className="h-full w-full object-cover" />
+              <CachedImg src={highResThumb(currentSong.videoId) || currentSong.albumArtUrl} alt={currentSong.title} className="h-full w-full object-cover" />
             ) : (
               <div className="thumb-placeholder h-full w-full" />
             )}

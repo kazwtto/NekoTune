@@ -1,4 +1,5 @@
 mod api;
+mod cache;
 mod download;
 mod local;
 mod login;
@@ -177,6 +178,127 @@ fn cmd_minimize_to_tray(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+// ═══════════════════════════════════════════════════════════════
+// Cache Commands
+// ═══════════════════════════════════════════════════════════════
+
+#[tauri::command]
+async fn cmd_audio_cache_get_path(app: tauri::AppHandle, video_id: String) -> Result<Option<String>, String> {
+    Ok(cache::audio_get_path(&app, &video_id))
+}
+
+#[tauri::command]
+async fn cmd_audio_cache_remove(app: tauri::AppHandle, video_id: String) -> Result<(), String> {
+    cache::audio_remove(&app, &video_id);
+    Ok(())
+}
+
+#[tauri::command]
+async fn cmd_audio_cache_clear(app: tauri::AppHandle) -> Result<(), String> {
+    cache::audio_clear(&app);
+    Ok(())
+}
+
+#[tauri::command]
+async fn cmd_audio_cache_stats(app: tauri::AppHandle) -> Result<cache::CacheStats, String> {
+    Ok(cache::audio_stats(&app))
+}
+
+#[tauri::command]
+async fn cmd_audio_cache_download(
+    app: tauri::AppHandle,
+    video_id: String,
+    format: String,
+    quality: String,
+    max_entries: usize,
+    max_storage_mb: u64,
+) -> Result<String, String> {
+    cache::audio_download(&app, &video_id, &format, &quality, max_entries, max_storage_mb).await
+}
+
+#[tauri::command]
+async fn cmd_image_cache_get_path(app: tauri::AppHandle, url: String) -> Result<Option<String>, String> {
+    Ok(cache::image_get_path(&app, &url))
+}
+
+#[tauri::command]
+async fn cmd_image_cache_clear(app: tauri::AppHandle) -> Result<(), String> {
+    cache::image_clear(&app);
+    Ok(())
+}
+
+#[tauri::command]
+async fn cmd_image_cache_stats(app: tauri::AppHandle) -> Result<cache::CacheStats, String> {
+    Ok(cache::image_stats(&app))
+}
+
+#[tauri::command]
+async fn cmd_image_cache_download(
+    app: tauri::AppHandle,
+    url: String,
+    format: String,
+    quality: String,
+    max_entries: usize,
+    max_storage_mb: u64,
+) -> Result<String, String> {
+    cache::image_download(&app, &url, &format, &quality, max_entries, max_storage_mb).await
+}
+
+#[tauri::command]
+async fn cmd_audio_cache_evict(app: tauri::AppHandle) -> Result<(), String> {
+    cache::audio_evict(&app);
+    Ok(())
+}
+
+#[tauri::command]
+async fn cmd_audio_cache_evict_with_limits(
+    app: tauri::AppHandle,
+    max_entries: usize,
+    max_storage_mb: u64,
+) -> Result<(), String> {
+    cache::audio_evict_with_limits(&app, max_entries, max_storage_mb);
+    Ok(())
+}
+
+#[tauri::command]
+async fn cmd_cache_debug(app: tauri::AppHandle) -> Result<String, String> {
+    use std::fs;
+    let config_dir = app.path().app_config_dir().map_err(|e| format!("app_config_dir error: {e}"))?;
+    let cache_dir = config_dir.join("cache");
+    let audio_dir = cache_dir.join("audio");
+
+    fs::create_dir_all(&audio_dir).map_err(|e| format!("create_dir_all error: {e}"))?;
+
+    let test_file = audio_dir.join("test.txt");
+    fs::write(&test_file, "test").map_err(|e| format!("write error: {e}"))?;
+    let content = fs::read_to_string(&test_file).map_err(|e| format!("read error: {e}"))?;
+    fs::remove_file(&test_file).ok();
+
+    Ok(format!(
+        "config_dir: {}\ncache_dir: {}\naudio_dir: {}\nwrite_ok: {}",
+        config_dir.display(),
+        cache_dir.display(),
+        audio_dir.display(),
+        content == "test"
+    ))
+}
+
+#[tauri::command]
+async fn cmd_image_cache_evict(app: tauri::AppHandle) -> Result<(), String> {
+    cache::image_evict(&app);
+    Ok(())
+}
+
+#[tauri::command]
+async fn cmd_image_cache_evict_with_limits(
+    app: tauri::AppHandle,
+    max_entries: usize,
+    max_storage_mb: u64,
+) -> Result<(), String> {
+    cache::image_evict_with_limits(&app, max_entries, max_storage_mb);
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -267,6 +389,20 @@ pub fn run() {
             download::cmd_get_downloaded_file_path,
             download::cmd_get_all_downloaded_ids,
             cmd_minimize_to_tray,
+            cmd_audio_cache_get_path,
+            cmd_audio_cache_remove,
+            cmd_audio_cache_clear,
+            cmd_audio_cache_stats,
+            cmd_audio_cache_download,
+            cmd_image_cache_get_path,
+            cmd_image_cache_clear,
+            cmd_image_cache_stats,
+            cmd_image_cache_download,
+            cmd_audio_cache_evict,
+            cmd_audio_cache_evict_with_limits,
+            cmd_image_cache_evict,
+            cmd_image_cache_evict_with_limits,
+            cmd_cache_debug,
         ])
         .run(tauri::generate_context!())
         .expect("error while running NekoTune")

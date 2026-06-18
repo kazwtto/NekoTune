@@ -15,7 +15,7 @@ import {
   Pencil,
   Trash2
 } from "lucide-react"
-import { proxyUrl } from "../../services/proxy"
+import CachedImg from "../ui/CachedImg"
 
 const navItems = [
   { path: "/", icon: Home, labelKey: "common.home" },
@@ -112,7 +112,7 @@ export default function Sidebar() {
                 }`}
               >
                 {pl.image ? (
-                  <img src={proxyUrl(pl.image)} alt="" className="h-6 w-6 rounded object-cover flex-shrink-0" />
+                  <CachedImg src={pl.image} alt="" className="h-6 w-6 rounded object-cover flex-shrink-0" />
                 ) : (
                   <div 
                     className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded"

@@ -29,3 +29,4 @@ yt-dlp = { version = "2", default-features = false, features = ["rustls"] }
 lofty = "0.21"
 walkdir = "2"
 dirs-next = "2"
+image = "0.25"

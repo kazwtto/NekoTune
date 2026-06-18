@@ -19,18 +19,41 @@ const defaultSettings: AppSettings = {
   downloadFolder: "",
   downloadFormat: "mp3",
   downloadQuality: "high",
-  streamCache: {
+  audioCache: {
     enabled: true,
-    ttlMinutes: 120,
+    format: "mp3",
+    quality: "high",
     maxEntries: 50,
+    maxStorageMb: 500,
+  },
+  imageCache: {
+    enabled: true,
+    format: "jpg",
+    quality: "high",
+    maxEntries: 200,
+    maxStorageMb: 100,
   },
   prefetchCache: {
     enabled: true,
     prefetchCount: 2,
     delayMs: 2000,
   },
+  songMetadataCache: {
+    enabled: true,
+    maxEntries: 500,
+    ttlDays: 7,
+  },
+  listBuffer: {
+    enabled: true,
+    maxEntries: 30,
+    ttlHomeFeed: 30,
+    ttlExplore: 60,
+    ttlPlaylist: 120,
+    ttlAlbum: 720,
+    ttlArtist: 360,
+    ttlSearch: 15,
+  },
 }
-
 
 interface SettingsStore {
   settings: AppSettings
@@ -43,8 +66,11 @@ function loadSettings(): AppSettings {
   return {
     ...defaultSettings,
     ...stored,
-    streamCache: { ...defaultSettings.streamCache, ...(stored.streamCache ?? {}) },
+    audioCache: { ...defaultSettings.audioCache, ...(stored.audioCache ?? {}) },
+    imageCache: { ...defaultSettings.imageCache, ...(stored.imageCache ?? {}) },
     prefetchCache: { ...defaultSettings.prefetchCache, ...(stored.prefetchCache ?? {}) },
+    songMetadataCache: { ...defaultSettings.songMetadataCache, ...(stored.songMetadataCache ?? {}) },
+    listBuffer: { ...defaultSettings.listBuffer, ...(stored.listBuffer ?? {}) },
   }
 }
 

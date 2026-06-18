@@ -14,7 +14,8 @@ import { useUiStore } from "../../stores/uiStore"
 import { useLibraryStore } from "../../stores/libraryStore"
 import VolumeSlider from "../player/VolumeSlider"
 import ProgressBar from "../player/ProgressBar"
-import { proxyUrl, highResThumb } from "../../services/proxy"
+import { highResThumb } from "../../services/proxy"
+import CachedImg from "../ui/CachedImg"
 
 export default function PlayerBar() {
   const {
@@ -51,7 +52,7 @@ export default function PlayerBar() {
               <div className="thumb-placeholder h-full w-full" />
             )
           ) : currentSong.albumArtUrl || currentSong.videoId ? (
-            <img src={highResThumb(currentSong.videoId) || proxyUrl(currentSong.albumArtUrl)} alt={currentSong.title} className="h-full w-full object-cover" />
+            <CachedImg src={highResThumb(currentSong.videoId) || currentSong.albumArtUrl} alt={currentSong.title} className="h-full w-full object-cover" />
           ) : (
             <div className="thumb-placeholder h-full w-full" />
           )}

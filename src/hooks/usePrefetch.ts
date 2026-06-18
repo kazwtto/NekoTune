@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react"
 import { usePlayerStore } from "../stores/playerStore"
 import { useSettingsStore } from "../stores/settingsStore"
-import { streamCache } from "../services/streamCache"
-import { getStreamUrl } from "../services/innertube"
+import { audioCache } from "../services/audioCache"
 
 export function usePrefetch() {
   const currentSong = usePlayerStore((s) => s.currentSong)
@@ -25,22 +24,27 @@ export function usePrefetch() {
       if (controller.signal.aborted) return
 
       const { prefetchCount, delayMs } = settings.prefetchCache
-      const { ttlMinutes, maxEntries, enabled: cacheEnabled } = settings.streamCache
+      const ac = settings.audioCache
+
+      if (!ac.enabled) return
 
       const nextSongs = queue.slice(queueIndex + 1, queueIndex + 1 + prefetchCount)
 
       for (const song of nextSongs) {
         if (controller.signal.aborted) break
         if (!song.videoId || song.isLocal) continue
-        if (streamCache.has(song.videoId)) continue
+
+        const cachedPath = await audioCache.getPath(song.videoId)
+        if (cachedPath) continue
 
         try {
-          const data = await getStreamUrl(song.videoId)
-          if (controller.signal.aborted) break
-          if (data && cacheEnabled) {
-            streamCache.configure(maxEntries)
-            streamCache.set(song.videoId, data.url, data.duration, ttlMinutes * 60 * 1000)
-          }
+          await audioCache.download(
+            song.videoId,
+            ac.format,
+            ac.quality,
+            ac.maxEntries,
+            ac.maxStorageMb,
+          )
         } catch {
           // silent — prefetch failure is non-critical
         }
@@ -61,5 +65,5 @@ export function usePrefetch() {
       if (timerRef.current) clearTimeout(timerRef.current)
       if (abortRef.current) abortRef.current.abort()
     }
-  }, [currentSong?.videoId, queueIndex, settings.prefetchCache, settings.streamCache])
+  }, [currentSong?.videoId, queueIndex, settings.prefetchCache, settings.audioCache])
 }

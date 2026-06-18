@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import type { Album } from "../../types/music"
-import { proxyUrl } from "../../services/proxy"
+import CachedImg from "../ui/CachedImg"
 
 interface AlbumCardProps {
   album: Album
@@ -16,7 +16,7 @@ export default function AlbumCard({ album }: AlbumCardProps) {
     >
       <div className="mb-2.5 overflow-hidden rounded-lg aspect-square">
         {album.coverUrl ? (
-          <img src={proxyUrl(album.coverUrl)} alt={album.title} className="h-full w-full object-cover" />
+          <CachedImg src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
         ) : (
           <div className="thumb-placeholder h-full w-full" />
         )}

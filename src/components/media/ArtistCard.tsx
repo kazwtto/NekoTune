@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import type { Artist } from "../../types/music"
-import { proxyUrl } from "../../services/proxy"
+import CachedImg from "../ui/CachedImg"
 
 interface ArtistCardProps {
   artist: Artist
@@ -16,7 +16,7 @@ export default function ArtistCard({ artist }: ArtistCardProps) {
     >
       <div className="mx-auto mb-2.5 h-[90px] w-[90px] overflow-hidden rounded-full">
         {artist.imageUrl ? (
-          <img src={proxyUrl(artist.imageUrl)} alt={artist.name} className="h-full w-full object-cover" />
+          <CachedImg src={artist.imageUrl} alt={artist.name} className="h-full w-full object-cover" />
         ) : (
           <div className="thumb-placeholder h-full w-full rounded-full" />
         )}

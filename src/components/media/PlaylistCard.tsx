@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import type { Playlist } from "../../types/music"
-import { proxyUrl } from "../../services/proxy"
+import CachedImg from "../ui/CachedImg"
 
 interface PlaylistCardProps {
   playlist: Playlist
@@ -18,7 +18,7 @@ export default function PlaylistCard({ playlist }: PlaylistCardProps) {
     >
       <div className="mb-2.5 overflow-hidden rounded-lg aspect-square">
         {playlist.coverUrl ? (
-          <img src={proxyUrl(playlist.coverUrl)} alt={playlist.title} className="h-full w-full object-cover" />
+          <CachedImg src={playlist.coverUrl} alt={playlist.title} className="h-full w-full object-cover" />
         ) : (
           <div className="thumb-placeholder h-full w-full" />
         )}

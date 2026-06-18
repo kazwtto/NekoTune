@@ -8,7 +8,8 @@ import type { Song } from "../../types/music"
 import { formatTime } from "../../utils/format"
 import { useState } from "react"
 import ContextMenu, { ContextMenuItem } from "../ui/ContextMenu"
-import { proxyUrl, highResThumb } from "../../services/proxy"
+import { highResThumb } from "../../services/proxy"
+import CachedImg from "../ui/CachedImg"
 
 interface SongCardProps {
   song: Song
@@ -73,14 +74,14 @@ export default function SongCard({ song, index, variant = "list", isActive, onCl
             <div className="relative h-8 w-8 flex-shrink-0">
               {song.isLocal ? (
                 song.albumArtUrl ? (
-                  <img src={song.albumArtUrl} alt="" className="h-full w-full rounded-md object-cover" />
+                  <CachedImg src={song.albumArtUrl} alt="" className="h-full w-full rounded-md object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center rounded-md bg-white/5">
                     <Music size={12} className="text-white/40" />
                   </div>
                 )
               ) : song.albumArtUrl || song.videoId ? (
-                <img src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)} alt="" className="h-full w-full rounded-md object-cover" />
+                <CachedImg src={highResThumb(song.videoId) || song.albumArtUrl} alt="" className="h-full w-full rounded-md object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center rounded-md bg-white/5">
                   <Music size={12} className="text-white/40" />
@@ -186,14 +187,14 @@ export default function SongCard({ song, index, variant = "list", isActive, onCl
         <div className={`relative flex-shrink-0 ${isCompact ? "h-12 w-12" : "h-10 w-10"}`}>
           {song.isLocal ? (
             song.albumArtUrl ? (
-              <img src={song.albumArtUrl} alt="" className="h-full w-full rounded-lg object-cover" />
+              <CachedImg src={song.albumArtUrl} alt="" className="h-full w-full rounded-lg object-cover" />
             ) : (
               <div className="flex h-full w-full items-center justify-center rounded-lg bg-bg-elevated">
                 <Music size={16} className="text-muted" />
               </div>
             )
           ) : song.albumArtUrl || song.videoId ? (
-            <img src={highResThumb(song.videoId) || proxyUrl(song.albumArtUrl)} alt="" className="h-full w-full rounded-lg object-cover" />
+            <CachedImg src={highResThumb(song.videoId) || song.albumArtUrl} alt="" className="h-full w-full rounded-lg object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center rounded-lg bg-bg-elevated">
               <Music size={16} className="text-muted" />

@@ -3,7 +3,7 @@ import type { Song } from "../types/music"
 import { proxyUrl } from "./proxy"
 import { usePlayerStore } from "../stores/playerStore"
 import { useSettingsStore } from "../stores/settingsStore"
-import { streamCache } from "./streamCache"
+import { audioCache } from "./audioCache"
 
 class PlayerService {
   private howl: Howl | null = null
@@ -92,29 +92,55 @@ class PlayerService {
           console.warn("Failed to check or load downloaded file, falling back to stream", e)
         }
 
-        if (!audioSrc) {
-          const { streamCache: sc } = this.settings
-          const cached = sc.enabled ? streamCache.get(song.videoId) : null
+        if (!audioSrc && song.videoId) {
+          const ac = this.settings.audioCache
 
-          if (cached) {
-            audioSrc = cached.url
-            durationFromStream = cached.duration
-          } else {
-            const { getStreamUrl: fetchStream } = await import("./innertube")
-            const streamData = await fetchStream(song.videoId)
-            if (gen !== this.loadGeneration) return
-            if (!streamData) {
-              this.patch({ isLoading: false, isPlaying: false })
-              if (this.settings.autoSkipOnError) this.store.next()
-              return
+          if (ac.enabled) {
+            const cachedUrl = await audioCache.getCachedUrl(song.videoId)
+            if (cachedUrl) {
+              audioSrc = cachedUrl
             }
-            const proxied = proxyUrl(streamData.url)
-            durationFromStream = streamData.duration
-            if (sc.enabled && proxied) {
-              streamCache.configure(sc.maxEntries)
-              streamCache.set(song.videoId, proxied, streamData.duration, sc.ttlMinutes * 60 * 1000)
+          }
+
+          if (!audioSrc) {
+            if (ac.enabled) {
+              try {
+                console.log(`[Cache] Downloading audio for ${song.videoId}...`)
+                const localPath = await audioCache.download(
+                  song.videoId,
+                  ac.format,
+                  ac.quality,
+                  ac.maxEntries,
+                  ac.maxStorageMb,
+                )
+                if (gen !== this.loadGeneration) return
+                console.log(`[Cache] Audio cached at: ${localPath}`)
+                audioSrc = proxyUrl(localPath)
+              } catch (e) {
+                console.error(`[Cache] Failed to download audio to cache:`, e)
+                const { getStreamUrl: fetchStream } = await import("./innertube")
+                const streamData = await fetchStream(song.videoId)
+                if (gen !== this.loadGeneration) return
+                if (!streamData) {
+                  this.patch({ isLoading: false, isPlaying: false })
+                  if (this.settings.autoSkipOnError) this.store.next()
+                  return
+                }
+                audioSrc = proxyUrl(streamData.url)
+                durationFromStream = streamData.duration
+              }
+            } else {
+              const { getStreamUrl: fetchStream } = await import("./innertube")
+              const streamData = await fetchStream(song.videoId)
+              if (gen !== this.loadGeneration) return
+              if (!streamData) {
+                this.patch({ isLoading: false, isPlaying: false })
+                if (this.settings.autoSkipOnError) this.store.next()
+                return
+              }
+              audioSrc = proxyUrl(streamData.url)
+              durationFromStream = streamData.duration
             }
-            audioSrc = proxied
           }
         }
       }

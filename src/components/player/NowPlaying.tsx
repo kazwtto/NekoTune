@@ -10,7 +10,8 @@ import { usePlayer } from "../../hooks/usePlayer"
 import { useUiStore } from "../../stores/uiStore"
 import { useLibraryStore } from "../../stores/libraryStore"
 import { usePlayerStore } from "../../stores/playerStore"
-import { proxyUrl, highResThumb } from "../../services/proxy"
+import { highResThumb } from "../../services/proxy"
+import CachedImg from "../ui/CachedImg"
 import { formatTime } from "../../utils/format"
 import LyricsView from "../lyrics/LyricsView"
 import ConfirmationModal from "../ui/ConfirmationModal"
@@ -95,8 +96,8 @@ export default function NowPlaying() {
                     <div className="thumb-placeholder h-full w-full rounded-2xl" />
                   )
                 ) : currentSong.albumArtUrl || currentSong.videoId ? (
-                  <img
-                    src={highResThumb(currentSong.videoId) || proxyUrl(currentSong.albumArtUrl)}
+                  <CachedImg
+                    src={highResThumb(currentSong.videoId) || currentSong.albumArtUrl}
                     alt={currentSong.title}
                     className="h-full w-full object-cover"
                   />
