@@ -310,6 +310,8 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .register_asynchronous_uri_scheme_protocol("nekotune", proxy::handle_protocol_request)
         .setup(|app| {
+            cache::init_caches(&app.handle());
+
             if let Some(floating) = app.get_webview_window("floating") {
                 let _ = floating.hide();
 

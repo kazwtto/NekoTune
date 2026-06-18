@@ -103,43 +103,26 @@ class PlayerService {
           }
 
           if (!audioSrc) {
+            console.log(`[Cache] MISS for videoId=${song.videoId}, fetching stream...`)
+            const { getStreamUrl: fetchStream } = await import("./innertube")
+            const streamData = await fetchStream(song.videoId)
+            if (gen !== this.loadGeneration) return
+            if (!streamData) {
+              this.patch({ isLoading: false, isPlaying: false })
+              if (this.settings.autoSkipOnError) this.store.next()
+              return
+            }
+            audioSrc = proxyUrl(streamData.url)
+            durationFromStream = streamData.duration
+
             if (ac.enabled) {
-              try {
-                console.log(`[Cache] Downloading audio for ${song.videoId}...`)
-                const localPath = await audioCache.download(
-                  song.videoId,
-                  ac.format,
-                  ac.quality,
-                  ac.maxEntries,
-                  ac.maxStorageMb,
-                )
-                if (gen !== this.loadGeneration) return
-                console.log(`[Cache] Audio cached at: ${localPath}`)
-                audioSrc = proxyUrl(localPath)
-              } catch (e) {
-                console.error(`[Cache] Failed to download audio to cache:`, e)
-                const { getStreamUrl: fetchStream } = await import("./innertube")
-                const streamData = await fetchStream(song.videoId)
-                if (gen !== this.loadGeneration) return
-                if (!streamData) {
-                  this.patch({ isLoading: false, isPlaying: false })
-                  if (this.settings.autoSkipOnError) this.store.next()
-                  return
-                }
-                audioSrc = proxyUrl(streamData.url)
-                durationFromStream = streamData.duration
-              }
-            } else {
-              const { getStreamUrl: fetchStream } = await import("./innertube")
-              const streamData = await fetchStream(song.videoId)
-              if (gen !== this.loadGeneration) return
-              if (!streamData) {
-                this.patch({ isLoading: false, isPlaying: false })
-                if (this.settings.autoSkipOnError) this.store.next()
-                return
-              }
-              audioSrc = proxyUrl(streamData.url)
-              durationFromStream = streamData.duration
+              audioCache.downloadBackground(
+                song.videoId,
+                ac.format,
+                ac.quality,
+                ac.maxEntries,
+                ac.maxStorageMb,
+              )
             }
           }
         }

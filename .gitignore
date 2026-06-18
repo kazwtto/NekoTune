@@ -2,6 +2,7 @@ node_modules/
 dist/
 target/
 build/
+test/
 
 package-lock.json
 

@@ -137,16 +137,33 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       const prevEntry = history.pop()!
       const prevSong = prevEntry.song
       const prevIndex = state.queue.findIndex((s) => s.videoId === prevSong.videoId)
-      set({
-        queueHistory: history,
-        queueIndex: prevIndex >= 0 ? prevIndex : Math.max(0, state.queueIndex - 1),
-        currentSong: prevSong,
-        isPlaying: true,
-        isLoading: true,
-        progress: 0,
-        duration: prevSong?.duration || 0,
-      })
-      persist(get)
+      if (prevIndex >= 0) {
+        set({
+          queueHistory: history,
+          queueIndex: prevIndex,
+          currentSong: prevSong,
+          isPlaying: true,
+          isLoading: true,
+          progress: 0,
+          duration: prevSong?.duration || 0,
+        })
+        persist(get)
+      } else {
+        const prevIdx = Math.max(0, state.queueIndex - 1)
+        const song = state.queue[prevIdx]
+        if (song) {
+          set({
+            queueHistory: history,
+            queueIndex: prevIdx,
+            currentSong: song,
+            isPlaying: true,
+            isLoading: true,
+            progress: 0,
+            duration: song.duration || 0,
+          })
+          persist(get)
+        }
+      }
     }
   },
 

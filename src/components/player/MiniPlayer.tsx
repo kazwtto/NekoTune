@@ -305,7 +305,7 @@ export default function MiniPlayer() {
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
           >
-            <ProgressBar showTime={false} onSeek={(time) => sendCommand("seek", { time })} />
+            <ProgressBar showTime={false} color="bg-accent" onSeek={(time) => sendCommand("seek", { time })} />
           </motion.div>
         )}
       </AnimatePresence>

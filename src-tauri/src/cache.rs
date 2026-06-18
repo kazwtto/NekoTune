@@ -12,8 +12,11 @@ use tauri::AppHandle;
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct EntryMeta {
     path: String,
+    #[serde(default)]
     size: u64,
+    #[serde(default)]
     cached_at: u64,
+    #[serde(default)]
     last_accessed: u64,
 }
 
@@ -67,10 +70,57 @@ fn index_path(app: &AppHandle, kind: &str) -> PathBuf {
     cache_root(app).join(format!("{kind}_index.json"))
 }
 
+fn load_index(app: &AppHandle, kind: &str) -> CacheIndex {
+    let path = index_path(app, kind);
+    eprintln!("[Cache] load_index: reading {}", path.display());
+    match fs::read_to_string(&path) {
+        Ok(content) => match serde_json::from_str::<CacheIndex>(&content) {
+            Ok(index) => {
+                eprintln!("[Cache] load_index: loaded {} entries from {}", index.entries.len(), kind);
+                index
+            }
+            Err(e) => {
+                eprintln!("[Cache] load_index: parse error for {}: {}", kind, e);
+                CacheIndex::default()
+            }
+        },
+        Err(e) => {
+            eprintln!("[Cache] load_index: read error for {}: {}", kind, e);
+            CacheIndex::default()
+        }
+    }
+}
+
+pub fn init_caches(app: &AppHandle) {
+    let audio = load_index(app, "audio");
+    let images = load_index(app, "images");
+    for (k, v) in &audio.entries {
+        eprintln!("[Cache] init audio: key={} size={} path={}", k, v.size, v.path);
+    }
+    eprintln!(
+        "[Cache] init_caches: audio={} entries ({} bytes), images={} entries, root={}",
+        audio.entries.len(),
+        audio.entries.values().map(|e| e.size).sum::<u64>(),
+        images.entries.len(),
+        cache_root(app).display()
+    );
+    *AUDIO_INDEX.lock().unwrap() = audio;
+    *IMAGE_INDEX.lock().unwrap() = images;
+}
+
 fn save_index(app: &AppHandle, kind: &str, index: &CacheIndex) {
     let path = index_path(app, kind);
-    if let Ok(json) = serde_json::to_string_pretty(index) {
-        fs::write(path, json).ok();
+    match serde_json::to_string_pretty(index) {
+        Ok(json) => {
+            if let Err(e) = fs::write(&path, &json) {
+                eprintln!("[Cache] save_index: write error for {}: {}", kind, e);
+            } else {
+                eprintln!("[Cache] save_index: saved {} entries to {}", index.entries.len(), path.display());
+            }
+        }
+        Err(e) => {
+            eprintln!("[Cache] save_index: serialize error for {}: {}", kind, e);
+        }
     }
 }
 
@@ -151,6 +201,7 @@ pub fn audio_get_path(app: &AppHandle, video_id: &str) -> Option<String> {
         if path.exists() {
             Some(entry.path.clone())
         } else {
+            eprintln!("[Cache] audio_get_path: file not found on disk: {}", entry.path);
             None
         }
     });
@@ -159,8 +210,14 @@ pub fn audio_get_path(app: &AppHandle, video_id: &str) -> Option<String> {
             entry.last_accessed = now_ms();
         }
         save_index(app, "audio", &index);
+        eprintln!("[Cache] audio_get_path: HIT for {}", video_id);
         return result;
     }
+    eprintln!(
+        "[Cache] audio_get_path: MISS for {} (index has {} entries)",
+        video_id,
+        index.entries.len()
+    );
     if index.entries.contains_key(video_id) {
         index.entries.remove(video_id);
         save_index(app, "audio", &index);
@@ -338,6 +395,7 @@ pub async fn audio_download(
     );
     save_index(app, "audio", &index);
 
+    eprintln!("[Cache] audio_download: saved {} -> {} ({} bytes)", video_id, path_str, data.len());
     Ok(path_str)
 }
 

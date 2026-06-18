@@ -4,24 +4,30 @@ import Toggle from "./Toggle"
 import Dropdown from "../ui/Dropdown"
 import { audioCache } from "../../services/audioCache"
 import { imageCacheService } from "../../services/imageCacheService"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export default function CacheSection() {
   const { t } = useTranslation()
   const { settings, updateSettings } = useSettingsStore()
   const { audioCache: ac, imageCache: ic, prefetchCache: pc, songMetadataCache: smc, listBuffer: lb } = settings
 
-  const [audioStats, setAudioStats] = useState({ count: 0, totalBytes: 0 })
-  const [imageStats, setImageStats] = useState({ count: 0, totalBytes: 0 })
+  const [audioStats, setAudioStats] = useState<{ count: number; totalBytes: number } | null>(null)
+  const [imageStats, setImageStats] = useState<{ count: number; totalBytes: number } | null>(null)
+
+  useEffect(() => {
+    audioCache.stats().then(setAudioStats).catch(() => setAudioStats({ count: 0, totalBytes: 0 }))
+    imageCacheService.stats().then(setImageStats).catch(() => setImageStats({ count: 0, totalBytes: 0 }))
+  }, [])
 
   async function refreshStats() {
-    const a = await audioCache.stats()
-    const i = await imageCacheService.stats()
+    const a = await audioCache.stats().catch(() => ({ count: 0, totalBytes: 0 }))
+    const i = await imageCacheService.stats().catch(() => ({ count: 0, totalBytes: 0 }))
     setAudioStats(a)
     setImageStats(i)
   }
 
   function formatBytes(bytes: number): string {
+    if (!bytes || bytes === 0) return "0 B"
     if (bytes < 1024) return `${bytes} B`
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
@@ -44,32 +50,34 @@ export default function CacheSection() {
 
         {ac.enabled && (
           <div className="ml-3 mt-6 flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-primary">{t("settings.audioCacheFormat")}</span>
-              <Dropdown
-                value={ac.format}
-                options={[
-                  { value: "mp3", label: "MP3" },
-                  { value: "flac", label: "FLAC" },
-                  { value: "ogg", label: "OGG" },
-                  { value: "wav", label: "WAV" },
-                ]}
-                onChange={(v) => updateSettings({ audioCache: { ...ac, format: v as any } })}
-              />
-            </div>
+            <div className="flex gap-4">
+              <div className="flex flex-col gap-2 flex-1">
+                <span className="text-sm font-medium text-primary">{t("settings.audioCacheFormat")}</span>
+                <Dropdown
+                  value={ac.format}
+                  options={[
+                    { value: "mp3", label: "MP3" },
+                    { value: "flac", label: "FLAC" },
+                    { value: "ogg", label: "OGG" },
+                    { value: "wav", label: "WAV" },
+                  ]}
+                  onChange={(v) => updateSettings({ audioCache: { ...ac, format: v as any } })}
+                />
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-primary">{t("settings.audioCacheQuality")}</span>
-              <Dropdown
-                value={ac.quality}
-                options={[
-                  { value: "low", label: t("settings.qualityLow") },
-                  { value: "medium", label: t("settings.qualityMedium") },
-                  { value: "high", label: t("settings.qualityHigh") },
-                  { value: "best", label: t("settings.qualityBest") },
-                ]}
-                onChange={(v) => updateSettings({ audioCache: { ...ac, quality: v as any } })}
-              />
+              <div className="flex flex-col gap-2 flex-1">
+                <span className="text-sm font-medium text-primary">{t("settings.audioCacheQuality")}</span>
+                <Dropdown
+                  value={ac.quality}
+                  options={[
+                    { value: "low", label: t("settings.qualityLow") },
+                    { value: "medium", label: t("settings.qualityMedium") },
+                    { value: "high", label: t("settings.qualityHigh") },
+                    { value: "best", label: t("settings.qualityBest") },
+                  ]}
+                  onChange={(v) => updateSettings({ audioCache: { ...ac, quality: v as any } })}
+                />
+              </div>
             </div>
 
             <div>
@@ -96,8 +104,8 @@ export default function CacheSection() {
 
             <div className="flex cursor-pointer items-center justify-between rounded-lg bg-bg-hover px-4 py-3" onClick={refreshStats}>
               <div className="flex gap-4 text-xs text-muted">
-                <span>{t("settings.cacheEntries")}: <span className="font-semibold text-primary">{audioStats.count}</span></span>
-                <span>{t("settings.cacheSize")}: <span className="font-semibold text-accent">{formatBytes(audioStats.totalBytes)}</span></span>
+                <span>{t("settings.cacheEntries")}: <span className="font-semibold text-primary">{audioStats?.count ?? 0}</span></span>
+                <span>{t("settings.cacheSize")}: <span className="font-semibold text-accent">{formatBytes(audioStats?.totalBytes ?? 0)}</span></span>
               </div>
               <button onClick={(e) => { e.stopPropagation(); audioCache.clear().then(refreshStats) }}
                 className="cursor-pointer text-xs text-secondary transition-colors hover:text-primary">
@@ -122,30 +130,32 @@ export default function CacheSection() {
 
         {ic.enabled && (
           <div className="ml-3 mt-6 flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-primary">{t("settings.imageCacheFormat")}</span>
-              <Dropdown
-                value={ic.format}
-                options={[
-                  { value: "jpg", label: "JPEG" },
-                  { value: "png", label: "PNG" },
-                  { value: "webp", label: "WebP" },
-                ]}
-                onChange={(v) => updateSettings({ imageCache: { ...ic, format: v as any } })}
-              />
-            </div>
+            <div className="flex gap-4">
+              <div className="flex flex-col gap-2 flex-1">
+                <span className="text-sm font-medium text-primary">{t("settings.imageCacheFormat")}</span>
+                <Dropdown
+                  value={ic.format}
+                  options={[
+                    { value: "jpg", label: "JPEG" },
+                    { value: "png", label: "PNG" },
+                    { value: "webp", label: "WebP" },
+                  ]}
+                  onChange={(v) => updateSettings({ imageCache: { ...ic, format: v as any } })}
+                />
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium text-primary">{t("settings.imageCacheQuality")}</span>
-              <Dropdown
-                value={ic.quality}
-                options={[
-                  { value: "low", label: t("settings.qualityLow") },
-                  { value: "medium", label: t("settings.qualityMedium") },
-                  { value: "high", label: t("settings.qualityHigh") },
-                ]}
-                onChange={(v) => updateSettings({ imageCache: { ...ic, quality: v as any } })}
-              />
+              <div className="flex flex-col gap-2 flex-1">
+                <span className="text-sm font-medium text-primary">{t("settings.imageCacheQuality")}</span>
+                <Dropdown
+                  value={ic.quality}
+                  options={[
+                    { value: "low", label: t("settings.qualityLow") },
+                    { value: "medium", label: t("settings.qualityMedium") },
+                    { value: "high", label: t("settings.qualityHigh") },
+                  ]}
+                  onChange={(v) => updateSettings({ imageCache: { ...ic, quality: v as any } })}
+                />
+              </div>
             </div>
 
             <div>
@@ -172,8 +182,8 @@ export default function CacheSection() {
 
             <div className="flex cursor-pointer items-center justify-between rounded-lg bg-bg-hover px-4 py-3" onClick={refreshStats}>
               <div className="flex gap-4 text-xs text-muted">
-                <span>{t("settings.cacheEntries")}: <span className="font-semibold text-primary">{imageStats.count}</span></span>
-                <span>{t("settings.cacheSize")}: <span className="font-semibold text-accent">{formatBytes(imageStats.totalBytes)}</span></span>
+                <span>{t("settings.cacheEntries")}: <span className="font-semibold text-primary">{imageStats?.count ?? 0}</span></span>
+                <span>{t("settings.cacheSize")}: <span className="font-semibold text-accent">{formatBytes(imageStats?.totalBytes ?? 0)}</span></span>
               </div>
               <button onClick={(e) => { e.stopPropagation(); imageCacheService.clear().then(refreshStats) }}
                 className="cursor-pointer text-xs text-secondary transition-colors hover:text-primary">

@@ -46,6 +46,25 @@ class AudioCacheService {
   async debug(): Promise<string> {
     return invoke<string>("cmd_cache_debug")
   }
+
+  downloadBackground(
+    videoId: string,
+    format: string,
+    quality: string,
+    maxEntries: number,
+    maxStorageMb: number,
+  ): void {
+    console.log(`[Cache] downloadBackground: starting for ${videoId}`)
+    invoke("cmd_audio_cache_download", {
+      videoId,
+      format,
+      quality,
+      maxEntries,
+      maxStorageMb,
+    })
+      .then((path) => console.log(`[Cache] downloadBackground: done for ${videoId} -> ${path}`))
+      .catch((e) => console.error(`[Cache] downloadBackground: failed for ${videoId}:`, e))
+  }
 }
 
 export const audioCache = new AudioCacheService()
